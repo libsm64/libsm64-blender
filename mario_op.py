@@ -166,6 +166,8 @@ def tick_mario():
 
     update_mesh_data(mesh)
 
+    return 1 / 30 - (time.perf_counter() - start_time)
+
 
 class InsertMario_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.libsm64_insert_mario"
@@ -188,4 +190,3 @@ class InsertMario_OT_Operator(bpy.types.Operator):
         bpy.app.timers.register(tick_mario)
 
         return {'FINISHED'}
-    return 1 / 30 - (time.perf_counter() - start_time)
