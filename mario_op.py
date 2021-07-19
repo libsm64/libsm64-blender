@@ -1,5 +1,6 @@
 import bpy
 import threading
+import time
 from . import inputs
 from mathutils import Vector
 from typing import cast, Dict
@@ -108,6 +109,8 @@ def cur_view():
 def tick_mario():
     global events
 
+    start_time = time.perf_counter()
+
     if 'mario' in cast(Dict[str, bpy.types.Mesh], bpy.data.meshes):
         mesh = cast(Dict[str, bpy.types.Mesh], bpy.data.meshes)['mario']
     else:
@@ -163,7 +166,6 @@ def tick_mario():
 
     update_mesh_data(mesh)
 
-    return 1 / 30
 
 class InsertMario_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.libsm64_insert_mario"
@@ -186,3 +188,4 @@ class InsertMario_OT_Operator(bpy.types.Operator):
         bpy.app.timers.register(tick_mario)
 
         return {'FINISHED'}
+    return 1 / 30 - (time.perf_counter() - start_time)
