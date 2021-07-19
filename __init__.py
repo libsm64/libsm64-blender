@@ -13,7 +13,7 @@ import bpy
 from . main_panel import Main_PT_Panel
 from . mario_op import InsertMario_OT_Operator
 
-register, unregister = bpy.utils.register_classes_factory(( #type:ignore
-    Main_PT_Panel, 
+register, unregister = bpy.utils.register_classes_factory((
+    Main_PT_Panel,
     InsertMario_OT_Operator
 ))

@@ -9,7 +9,7 @@ SM64_SCALE_FACTOR = 50
 
 class SM64Surface(ct.Structure):
     _fields_ = [
-        ('surftype', ct.c_int16), 
+        ('surftype', ct.c_int16),
         ('force', ct.c_int16),
         ('terrain', ct.c_uint16),
         ('v0x', ct.c_int16), ('v0y', ct.c_int16), ('v0z', ct.c_int16),
@@ -19,9 +19,9 @@ class SM64Surface(ct.Structure):
 
 class SM64MarioInputs(ct.Structure):
     _fields_ = [
-        ('camLookX', ct.c_float), ('camLookZ', ct.c_float), 
-        ('stickX', ct.c_float), ('stickY', ct.c_float), 
-        ('buttonA', ct.c_ubyte), ('buttonB', ct.c_ubyte), ('buttonZ', ct.c_ubyte), 
+        ('camLookX', ct.c_float), ('camLookZ', ct.c_float),
+        ('stickX', ct.c_float), ('stickY', ct.c_float),
+        ('buttonA', ct.c_ubyte), ('buttonB', ct.c_ubyte), ('buttonZ', ct.c_ubyte),
     ]
 
 class SM64MarioState(ct.Structure):
@@ -80,8 +80,8 @@ class SM64Mario:
         sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ];
         sm64.sm64_mario_create.restype = ct.c_uint32;
         self.mario_id = sm64.sm64_mario_create(
-            int(SM64_SCALE_FACTOR * start_pos.x), 
-            int(SM64_SCALE_FACTOR * start_pos.z) + 100, 
+            int(SM64_SCALE_FACTOR * start_pos.x),
+            int(SM64_SCALE_FACTOR * start_pos.z) + 100,
             -int(SM64_SCALE_FACTOR * start_pos.y),
         )
 
@@ -96,19 +96,19 @@ class SM64Mario:
 def create_texture(buffer):
     import bpy
     size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
-    image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1]) #type:ignore
+    image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1])
     pixels = [None] * size[0] * size[1]
     i = 0
-    for y in range(size[1]): 
+    for y in range(size[1]):
         for x in range(size[0]):
             r = float(buffer[i]) / 255
             g = float(buffer[i+1]) / 255
             b = float(buffer[i+2]) / 255
             a = float(buffer[i+3]) / 255
             i += 4
-            pixels[(y * size[0]) + x] = [r, g, b, a] #type:ignore
-    pixels = [chan for px in pixels for chan in px] #type:ignore
-    image.pixels = pixels #type:ignore
+            pixels[(y * size[0]) + x] = [r, g, b, a]
+    pixels = [chan for px in pixels for chan in px]
+    image.pixels = pixels
 
 def static_surfaces_load():
     surfaces = get_all_surfaces()
@@ -143,9 +143,9 @@ def get_all_surfaces():
             out_elem = {}
             for i in range(3):
                 tri_idx = tri.vertices[i]
-                vx = mesh.vertices[tri_idx].co.x #type:ignore
-                vy = mesh.vertices[tri_idx].co.y #type:ignore
-                vz = mesh.vertices[tri_idx].co.z #type:ignore
+                vx = mesh.vertices[tri_idx].co.x
+                vy = mesh.vertices[tri_idx].co.y
+                vz = mesh.vertices[tri_idx].co.z
                 vworld = matrix_world @ mathutils.Vector((vx, vy, vz, 1))
                 out_elem['v' + str(i) + 'x'] = vworld.x
                 out_elem['v' + str(i) + 'y'] = vworld.y
