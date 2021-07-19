@@ -1,13 +1,20 @@
 import bpy
+import threading
+from . import inputs
 from mathutils import Vector
 from typing import cast, Dict
 from . interop import SM64Mario, SM64_GEO_MAX_TRIANGLES, SM64_SCALE_FACTOR
-from . inputs import inputs_initialize, inputs_read
 
 # https://wiki.blender.org/wiki/Reference/Release_Notes/2.80/Python_API/Mesh_API
 
-running_sim = False
+thread: threading.Thread = None #type:ignore
 mario: SM64Mario = None #type:ignore
+events = []
+
+def worker():
+    global events
+    while True:
+        events.append(inputs.get_gamepad())
 
 def init_mesh_data(mesh: bpy.types.Mesh):
     verts = []
@@ -59,7 +66,7 @@ def update_mesh_data(mesh: bpy.types.Mesh):
     mesh.update()
 
 def read_axis(val):
-    val /= 256
+    val /= 32768.0
     if val < 0.2 and val > -0.2:
         return 0
     return (val - 0.2) / 0.8 if val > 0.0 else (val + 0.2) / 0.8
@@ -70,6 +77,8 @@ def cur_view():
             return a
 
 def tick_mario():
+    global events
+
     if 'mario' in cast(Dict[str, bpy.types.Mesh], bpy.data.meshes):
         mesh = cast(Dict[str, bpy.types.Mesh], bpy.data.meshes)['mario']
     else:
@@ -79,19 +88,37 @@ def tick_mario():
         new_object = bpy.data.objects.new('mario_object', mesh) #type:ignore
         bpy.context.scene.collection.objects.link(new_object) #type:ignore
 
-    inputs = inputs_read()
-    mario.mario_inputs.stickX = read_axis(inputs['x_axis'])
-    mario.mario_inputs.stickY = read_axis(inputs['y_axis'])
+    while len(events) > 0 :
+        for event in events[0]:
+            if event.code == "ABS_X":
+                mario.mario_inputs.stickX = read_axis(float(event.state))
+            elif event.code == "ABS_Y":
+                mario.mario_inputs.stickY = read_axis(float(event.state))
+            elif event.code == "BTN_SOUTH":
+                if event.state == 1:
+                    mario.mario_inputs.buttonA = True
+                else:
+                    mario.mario_inputs.buttonA = False
+            elif event.code == "BTN_NORTH":
+                if event.state == 1:
+                    mario.mario_inputs.buttonB = True
+                else:
+                    mario.mario_inputs.buttonB = False
+            elif event.code == "BTN_TL":
+                if event.state == 1:
+                    mario.mario_inputs.buttonZ = True
+                else:
+                    mario.mario_inputs.buttonZ = False
+            #elif event.code != "SYN_REPORT":
+            #    print(event.code + ':' + str(event.state))
+        events.pop(0)
 
     view3d = cur_view()
     r3d = view3d.spaces[0].region_3d #type:ignore
-    look_dir = r3d.view_rotation @ Vector((0.0, 0.0, -1.0))
 
+    look_dir = r3d.view_rotation @ Vector((0.0, 0.0, -1.0))
     mario.mario_inputs.camLookX = look_dir.x
     mario.mario_inputs.camLookZ = -look_dir.y
-    mario.mario_inputs.buttonA = inputs['button_a']
-    mario.mario_inputs.buttonB = inputs['button_b']
-    mario.mario_inputs.buttonZ = inputs['button_z']
 
     mario.tick()
 
@@ -116,12 +143,16 @@ class InsertMario_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         global mario
+        global thread
 
         if mario != None:
             return {'FINISHED'}
 
+        thread = threading.Thread(target=worker)
+        thread.daemon = True
+        thread.start()
+
         mario = SM64Mario(bpy.context.scene.cursor.location)
-        inputs_initialize()
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.app.timers.register(tick_mario)
 

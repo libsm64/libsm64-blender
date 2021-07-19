@@ -10,20 +10,6 @@ bl_info = {
 }
 
 import bpy
-from pathlib import Path
-
-try:
-    python_path = Path(bpy.app.binary_path_python) #type:ignore
-except AttributeError:
-    import sys
-    python_path = Path(sys.executable)
-
-import subprocess
-import ensurepip
-
-ensurepip.bootstrap()
-subprocess.check_call([python_path, '-m', 'pip', 'install', 'evdev']) #type:ignore
-
 from . main_panel import Main_PT_Panel
 from . mario_op import InsertMario_OT_Operator
 
