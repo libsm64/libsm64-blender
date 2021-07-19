@@ -10,7 +10,7 @@ bl_info = {
 }
 
 import bpy
-from .insert_op import InsertMario_OT_Operator
+from . mario import insert_mario
 
 class Main_PT_Panel(bpy.types.Panel):
     bl_idname = "LIBSM64_PT_main_panel"
@@ -23,6 +23,15 @@ class Main_PT_Panel(bpy.types.Panel):
         layout = self.layout
         row = layout.row()
         row.operator('view3d.libsm64_insert_mario', text='Insert Mario')
+
+class InsertMario_OT_Operator(bpy.types.Operator):
+    bl_idname = "view3d.libsm64_insert_mario"
+    bl_label = "Insert Mario"
+    bl_description = "Inserts a Mario into the scene"
+
+    def execute(self, context):
+        insert_mario(bpy.context.scene.cursor.location)
+        return {'FINISHED'}
 
 register, unregister = bpy.utils.register_classes_factory((
     Main_PT_Panel,

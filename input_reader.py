@@ -1,6 +1,5 @@
 import threading
 from . import zeth_inputs
-from . mario import SM64MarioInputs
 
 thread_running = False
 events = []
@@ -26,7 +25,7 @@ def stop_input_reader():
     global thread_running
     thread_running = False
 
-def sample_input_reader(mario_inputs: SM64MarioInputs):
+def sample_input_reader(mario_inputs):
     while len(events) > 0 :
         for event in events[0]:
             if event.code == "ABS_X":
