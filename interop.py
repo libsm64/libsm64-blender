@@ -71,9 +71,10 @@ class SM64Mario:
             with open(rom_path, 'rb') as file:
                 rom_bytes = bytearray(file.read())
                 rom_chars = ct.c_char * len(rom_bytes)
-                texture_buff = (ct.c_ubyte * (4 * 64 * 64 * 11))()
+                texture_buff = (ct.c_ubyte * (4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT))()
                 sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
                 sm64.sm64_global_init(rom_chars.from_buffer(rom_bytes), texture_buff, None)
+                create_texture(texture_buff)
                 static_surfaces_load()
 
         sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ];
@@ -91,6 +92,23 @@ class SM64Mario:
     def tick(self):
         sm64.sm64_mario_tick.argtypes = [ ct.c_uint32, ct.POINTER(SM64MarioInputs), ct.POINTER(SM64MarioState), ct.POINTER(SM64MarioGeometryBuffers) ]
         sm64.sm64_mario_tick(self.mario_id, ct.byref(self.mario_inputs), ct.byref(self.mario_state), ct.byref(self.mario_geo))
+
+def create_texture(buffer):
+    import bpy
+    size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
+    image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1]) #type:ignore
+    pixels = [None] * size[0] * size[1]
+    i = 0
+    for y in range(size[1]): 
+        for x in range(size[0]):
+            r = float(buffer[i]) / 255
+            g = float(buffer[i+1]) / 255
+            b = float(buffer[i+2]) / 255
+            a = float(buffer[i+3]) / 255
+            i += 4
+            pixels[(y * size[0]) + x] = [r, g, b, a] #type:ignore
+    pixels = [chan for px in pixels for chan in px] #type:ignore
+    image.pixels = pixels #type:ignore
 
 def static_surfaces_load():
     surfaces = get_all_surfaces()

@@ -1,8 +1,9 @@
 import bpy
 import threading
+import bmesh
 from . import inputs
 from mathutils import Vector
-from typing import cast, Dict
+from typing import cast, Dict, List
 from . interop import SM64Mario, SM64_GEO_MAX_TRIANGLES, SM64_SCALE_FACTOR
 
 # https://wiki.blender.org/wiki/Reference/Release_Notes/2.80/Python_API/Mesh_API
@@ -15,6 +16,12 @@ def worker():
     global events
     while True:
         events.append(inputs.get_gamepad())
+
+def create_material(mat: bpy.types.Material):
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    nodes.clear() #type:ignore
+    nodes.new(type='ShaderNodeOutputMaterial') #type:ignore
 
 def init_mesh_data(mesh: bpy.types.Mesh):
     verts = []
@@ -30,7 +37,12 @@ def init_mesh_data(mesh: bpy.types.Mesh):
         edges.append((3*i+2, 3*i+0))
         faces.append((3*i+0, 3*i+1, 3*i+2))
 
+    mat = bpy.data.materials.new(name="libsm64_mario_material") #type:ignore
+    create_material(mat)
+
     mesh.from_pydata(verts, edges, faces) #type:ignore
+    mesh.uv_layers.active = mesh.uv_layers.new(name="uv0") #type:ignore
+    mesh.materials.append(mat) #type:ignore
 
 def update_mesh_data(mesh: bpy.types.Mesh):
     vcol = mesh.vertex_colors.active #type:ignore
@@ -44,6 +56,9 @@ def update_mesh_data(mesh: bpy.types.Mesh):
         mesh.vertices[3*i+2].co.x =  mario.mario_geo.position_data[9*i+6] / SM64_SCALE_FACTOR #type:ignore
         mesh.vertices[3*i+2].co.z =  mario.mario_geo.position_data[9*i+7] / SM64_SCALE_FACTOR #type:ignore
         mesh.vertices[3*i+2].co.y = -mario.mario_geo.position_data[9*i+8] / SM64_SCALE_FACTOR #type:ignore
+        mesh.uv_layers.active.data[mesh.loops[3*i+0].index].uv = (mario.mario_geo.uv_data[6*i+0], mario.mario_geo.uv_data[6*i+1]) #type:ignore
+        mesh.uv_layers.active.data[mesh.loops[3*i+1].index].uv = (mario.mario_geo.uv_data[6*i+2], mario.mario_geo.uv_data[6*i+3]) #type:ignore
+        mesh.uv_layers.active.data[mesh.loops[3*i+2].index].uv = (mario.mario_geo.uv_data[6*i+4], mario.mario_geo.uv_data[6*i+5]) #type:ignore
 
         vcol.data[3*i+0].color = ( #type:ignore
             mario.mario_geo.color_data[9*i+0],
@@ -134,7 +149,7 @@ def tick_mario():
 
     update_mesh_data(mesh)
 
-    return 0.03
+    return 1 / 30
 
 class InsertMario_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.libsm64_insert_mario"
