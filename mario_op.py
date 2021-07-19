@@ -64,6 +64,11 @@ def read_axis(val):
         return 0
     return (val - 0.2) / 0.8 if val > 0.0 else (val + 0.2) / 0.8
 
+def cur_view():
+    for a in bpy.context.window.screen.areas: #type:ignore
+        if a.type == 'VIEW_3D':
+            return a
+
 def tick_mario():
     if 'mario' in cast(Dict[str, bpy.types.Mesh], bpy.data.meshes):
         mesh = cast(Dict[str, bpy.types.Mesh], bpy.data.meshes)['mario']
@@ -74,18 +79,12 @@ def tick_mario():
         new_object = bpy.data.objects.new('mario_object', mesh) #type:ignore
         bpy.context.scene.collection.objects.link(new_object) #type:ignore
 
-    def views():
-        rtn = []
-        for a in bpy.context.window.screen.areas: #type:ignore
-          if a.type == 'VIEW_3D':
-            rtn.append(a)
-        return rtn
-
     inputs = inputs_read()
     mario.mario_inputs.stickX = read_axis(inputs['x_axis'])
     mario.mario_inputs.stickY = read_axis(inputs['y_axis'])
 
-    r3d = views()[0].spaces[0].region_3d #type:ignore
+    view3d = cur_view()
+    r3d = view3d.spaces[0].region_3d #type:ignore
     look_dir = r3d.view_rotation @ Vector((0.0, 0.0, -1.0))
 
     mario.mario_inputs.camLookX = look_dir.x
@@ -95,6 +94,16 @@ def tick_mario():
     mario.mario_inputs.buttonZ = inputs['button_z']
 
     mario.tick()
+
+    bpy.context.scene.cursor.location = ( #type:ignore
+        mario.mario_state.posX / SM64_SCALE_FACTOR,
+        -mario.mario_state.posZ / SM64_SCALE_FACTOR,
+        mario.mario_state.posY / SM64_SCALE_FACTOR,
+    )
+
+    for region in (r for r in view3d.regions if r.type == 'WINDOW'): #type:ignore
+        context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
+        bpy.ops.view3d.view_center_cursor(context_override) #type:ignore
 
     update_mesh_data(mesh)
 
@@ -109,11 +118,11 @@ class InsertMario_OT_Operator(bpy.types.Operator):
         global mario
 
         if mario != None:
-            return
+            return {'FINISHED'}
 
         mario = SM64Mario(bpy.context.scene.cursor.location)
         inputs_initialize()
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.app.timers.register(tick_mario)
 
-        return {'FINISHED'}   
+        return {'FINISHED'}

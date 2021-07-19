@@ -12,7 +12,6 @@ def inputs_initialize():
 def inputs_read():
     global device
     buttons = device.active_keys()
-    print(buttons)
     return {
         'x_axis': (device.absinfo(0).value - 128) / 128,
         'y_axis': (device.absinfo(1).value - 128) / 128,

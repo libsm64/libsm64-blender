@@ -5,7 +5,7 @@ import ctypes as ct
 SM64_TEXTURE_WIDTH = 64 * 11
 SM64_TEXTURE_HEIGHT = 64
 SM64_GEO_MAX_TRIANGLES = 1024
-SM64_SCALE_FACTOR = 100
+SM64_SCALE_FACTOR = 50
 
 class SM64Surface(ct.Structure):
     _fields_ = [
