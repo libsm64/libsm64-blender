@@ -1,6 +1,9 @@
+import bpy
 import os
 import platform
 import ctypes as ct
+import mathutils
+from typing import cast, List
 
 SM64_TEXTURE_WIDTH = 64 * 11
 SM64_TEXTURE_HEIGHT = 64
@@ -94,7 +97,6 @@ class SM64Mario:
         sm64.sm64_mario_tick(self.mario_id, ct.byref(self.mario_inputs), ct.byref(self.mario_state), ct.byref(self.mario_geo))
 
 def create_texture(buffer):
-    import bpy
     size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
     image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1])
     pixels = [None] * size[0] * size[1]
@@ -133,10 +135,6 @@ def static_surfaces_load():
 
 
 def get_all_surfaces():
-    import bpy
-    import mathutils
-    from typing import cast, List
-
     def add_mesh(matrix_world, mesh: bpy.types.Mesh, out):
         mesh.calc_loop_triangles()
         for tri in cast(List[bpy.types.MeshLoopTriangle], mesh.loop_triangles):
@@ -160,6 +158,42 @@ def get_all_surfaces():
             add_mesh(obj.matrix_world, obj.data, out)
 
     return out
+
+def update_mesh_data(mario: SM64Mario, mesh: bpy.types.Mesh):
+    vcol = mesh.vertex_colors.active
+    for i in range(mario.mario_geo.numTrianglesUsed):
+        mesh.vertices[3*i+0].co.x =  mario.mario_geo.position_data[9*i+0] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+0].co.z =  mario.mario_geo.position_data[9*i+1] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+0].co.y = -mario.mario_geo.position_data[9*i+2] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+1].co.x =  mario.mario_geo.position_data[9*i+3] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+1].co.z =  mario.mario_geo.position_data[9*i+4] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+1].co.y = -mario.mario_geo.position_data[9*i+5] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+2].co.x =  mario.mario_geo.position_data[9*i+6] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+2].co.z =  mario.mario_geo.position_data[9*i+7] / SM64_SCALE_FACTOR
+        mesh.vertices[3*i+2].co.y = -mario.mario_geo.position_data[9*i+8] / SM64_SCALE_FACTOR
+        mesh.uv_layers.active.data[mesh.loops[3*i+0].index].uv = (mario.mario_geo.uv_data[6*i+0], mario.mario_geo.uv_data[6*i+1])
+        mesh.uv_layers.active.data[mesh.loops[3*i+1].index].uv = (mario.mario_geo.uv_data[6*i+2], mario.mario_geo.uv_data[6*i+3])
+        mesh.uv_layers.active.data[mesh.loops[3*i+2].index].uv = (mario.mario_geo.uv_data[6*i+4], mario.mario_geo.uv_data[6*i+5])
+
+        vcol.data[3*i+0].color = (
+            mario.mario_geo.color_data[9*i+0],
+            mario.mario_geo.color_data[9*i+1],
+            mario.mario_geo.color_data[9*i+2],
+            1.0
+        )
+        vcol.data[3*i+1].color = (
+            mario.mario_geo.color_data[9*i+3],
+            mario.mario_geo.color_data[9*i+4],
+            mario.mario_geo.color_data[9*i+5],
+            1.0
+        )
+        vcol.data[3*i+2].color = (
+            mario.mario_geo.color_data[9*i+6],
+            mario.mario_geo.color_data[9*i+7],
+            mario.mario_geo.color_data[9*i+8],
+            1.0
+        )
+    mesh.update()
 
 
 #   public enum SM64TerrainType
