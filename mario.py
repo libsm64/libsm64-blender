@@ -81,8 +81,8 @@ def insert_mario(rom_path: str, pos):
 
         sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
         sm64.sm64_static_surfaces_load.argtypes = [ ct.POINTER(SM64Surface), ct.c_uint32 ]
-        sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ];
-        sm64.sm64_mario_create.restype = ct.c_int32;
+        sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ]
+        sm64.sm64_mario_create.restype = ct.c_int32
         sm64.sm64_mario_tick.argtypes = [ ct.c_uint32, ct.POINTER(SM64MarioInputs), ct.POINTER(SM64MarioState), ct.POINTER(SM64MarioGeometryBuffers) ]
 
         with open(os.path.expanduser(rom_path), 'rb') as file:

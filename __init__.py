@@ -17,7 +17,7 @@ class LibSm64Properties(bpy.types.PropertyGroup):
         name="Path",
         description="Path to an unmodified US SM64 ROM", 
         subtype='FILE_PATH',
-        default='~/sm64.us.z64'
+        default=('c:\\sm64.us.z64' if platform.system() == 'Windows' else '~/sm64.us.z64')
     )
 
 class Main_PT_Panel(bpy.types.Panel):
