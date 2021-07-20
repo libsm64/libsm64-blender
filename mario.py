@@ -92,6 +92,9 @@ def insert_mario(rom_path: str, pos):
             sm64.sm64_global_init(rom_chars.from_buffer(rom_bytes), texture_buff, None)
             initialize_all_data(texture_buff)
 
+    if 'LibSM64 Mario' in bpy.data.objects:
+        bpy.data.objects.remove(bpy.data.objects['LibSM64 Mario'])
+
     surface_array = get_surface_array_from_scene()
 
     sm64.sm64_static_surfaces_load(surface_array, len(surface_array))
