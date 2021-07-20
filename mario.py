@@ -194,23 +194,29 @@ def get_all_surfaces():
     return out
 
 def initialize_all_data(texture_buffer):
-    if not ('libsm64_mario_texture' in bpy.data.images):
-        size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
+    size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
+    if 'libsm64_mario_texture' in bpy.data.images:
+        image = bpy.data.images["libsm64_mario_texture"]
+    else:
         image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1])
-        pixels = [None] * size[0] * size[1]
-        i = 0
-        for y in range(size[1]):
-            for x in range(size[0]):
-                r = float(texture_buffer[i]) / 255
-                g = float(texture_buffer[i+1]) / 255
-                b = float(texture_buffer[i+2]) / 255
-                a = float(texture_buffer[i+3]) / 255
-                i += 4
-                pixels[(y * size[0]) + x] = [r, g, b, a]
-        pixels = [chan for px in pixels for chan in px]
-        image.pixels = pixels
+    pixels = [None] * size[0] * size[1]
+    i = 0
+    for y in range(size[1]):
+        for x in range(size[0]):
+            r = float(texture_buffer[i]) / 255
+            g = float(texture_buffer[i+1]) / 255
+            b = float(texture_buffer[i+2]) / 255
+            a = float(texture_buffer[i+3]) / 255
+            i += 4
+            pixels[(y * size[0]) + x] = [r, g, b, a]
+    pixels = [chan for px in pixels for chan in px]
+    image.alpha_mode = 'STRAIGHT'
+    image.file_format = 'PNG'
+    image.pixels = pixels
 
-    if not ('libsm64_mario_material' in bpy.data.materials):
+    if 'libsm64_mario_material' in bpy.data.materials:
+        mat = bpy.data.materials["libsm64_mario_material"]
+    else:
         mat = bpy.data.materials.new(name="libsm64_mario_material")
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
@@ -264,7 +270,6 @@ def update_mesh_data(mesh: bpy.types.Mesh):
         mesh.uv_layers.active.data[mesh.loops[3*i+0].index].uv = (mario_geo.uv_data[6*i+0], mario_geo.uv_data[6*i+1])
         mesh.uv_layers.active.data[mesh.loops[3*i+1].index].uv = (mario_geo.uv_data[6*i+2], mario_geo.uv_data[6*i+3])
         mesh.uv_layers.active.data[mesh.loops[3*i+2].index].uv = (mario_geo.uv_data[6*i+4], mario_geo.uv_data[6*i+5])
-
         vcol.data[3*i+0].color = (
             mario_geo.color_data[9*i+0],
             mario_geo.color_data[9*i+1],
