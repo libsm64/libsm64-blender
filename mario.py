@@ -67,51 +67,57 @@ mario_inputs = SM64MarioInputs()
 mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
 
-def insert_mario(pos):
+def insert_mario(rom_path: str, pos):
     global sm64, mario_id
 
-    start_input_reader()
+    if mario_id >= 0:
+        return
 
     if sm64 == None:
         this_path = os.path.dirname(os.path.realpath(__file__))
         dll_name = 'sm64.dll' if platform.system() == 'Windows' else 'libsm64.so'
         dll_path = os.path.join(this_path, 'lib', dll_name)
-        rom_path = os.path.join(this_path, "baserom.us.z64")
         sm64 = ct.cdll.LoadLibrary(dll_path)
 
-        with open(rom_path, 'rb') as file:
+        sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
+        sm64.sm64_static_surfaces_load.argtypes = [ ct.POINTER(SM64Surface), ct.c_uint32 ]
+        sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ];
+        sm64.sm64_mario_create.restype = ct.c_int32;
+        sm64.sm64_mario_tick.argtypes = [ ct.c_uint32, ct.POINTER(SM64MarioInputs), ct.POINTER(SM64MarioState), ct.POINTER(SM64MarioGeometryBuffers) ]
+
+        with open(os.path.expanduser(rom_path), 'rb') as file:
             rom_bytes = bytearray(file.read())
             rom_chars = ct.c_char * len(rom_bytes)
             texture_buff = (ct.c_ubyte * (4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT))()
-            sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
             sm64.sm64_global_init(rom_chars.from_buffer(rom_bytes), texture_buff, None)
-            create_texture(texture_buff)
-            static_surfaces_load()
+            initialize_all_data(texture_buff)
 
-    sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ];
-    sm64.sm64_mario_create.restype = ct.c_int32;
+    surface_array = get_surface_array_from_scene()
+
+    sm64.sm64_static_surfaces_load(surface_array, len(surface_array))
+
     mario_id = sm64.sm64_mario_create(
         int(SM64_SCALE_FACTOR * pos.x),
         int(SM64_SCALE_FACTOR * pos.z) + 1,
         -int(SM64_SCALE_FACTOR * pos.y),
     )
 
+    mario_obj = bpy.data.objects.new('LibSM64 Mario', bpy.data.meshes['libsm64_mario_mesh'])
+    bpy.context.scene.collection.objects.link(mario_obj)
+
+    start_input_reader()
     bpy.app.timers.register(tick_mario)
 
 def tick_mario():
     global sm64, mario_id, mario_state, mario_geo
 
     start_time = time.perf_counter()
-    tick_mario
 
-    if 'mario' in bpy.data.meshes:
-        mesh = bpy.data.meshes['mario']
-    else:
-        mesh = bpy.data.meshes.new('mario')
-        mesh.vertex_colors.new()
-        init_mesh_data(mesh)
-        new_object = bpy.data.objects.new('mario_object', mesh)
-        bpy.context.scene.collection.objects.link(new_object)
+    if not ('LibSM64 Mario' in bpy.data.objects):
+        sm64.sm64_mario_delete(mario_id)
+        bpy.app.timers.unregister(tick_mario)
+        mario_id = -1
+        return 0
 
     sample_input_reader(mario_inputs)
 
@@ -126,7 +132,6 @@ def tick_mario():
     mario_inputs.camLookX = look_dir.x
     mario_inputs.camLookZ = -look_dir.y
 
-    sm64.sm64_mario_tick.argtypes = [ ct.c_uint32, ct.POINTER(SM64MarioInputs), ct.POINTER(SM64MarioState), ct.POINTER(SM64MarioGeometryBuffers) ]
     sm64.sm64_mario_tick(mario_id, ct.byref(mario_inputs), ct.byref(mario_state), ct.byref(mario_geo))
 
     bpy.context.scene.cursor.location = (
@@ -139,27 +144,11 @@ def tick_mario():
         context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
         bpy.ops.view3d.view_center_cursor(context_override)
 
-    update_mesh_data(mesh)
+    update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
 
     return 1 / 30 - (time.perf_counter() - start_time)
 
-def create_texture(buffer):
-    size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
-    image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1])
-    pixels = [None] * size[0] * size[1]
-    i = 0
-    for y in range(size[1]):
-        for x in range(size[0]):
-            r = float(buffer[i]) / 255
-            g = float(buffer[i+1]) / 255
-            b = float(buffer[i+2]) / 255
-            a = float(buffer[i+3]) / 255
-            i += 4
-            pixels[(y * size[0]) + x] = [r, g, b, a]
-    pixels = [chan for px in pixels for chan in px]
-    image.pixels = pixels
-
-def static_surfaces_load():
+def get_surface_array_from_scene():
     surfaces = get_all_surfaces()
     surface_array = (SM64Surface * len(surfaces))()
 
@@ -177,8 +166,7 @@ def static_surfaces_load():
         surface_array[i].v2y = int(SM64_SCALE_FACTOR *  surfaces[i]['v2z'])
         surface_array[i].v2z = int(SM64_SCALE_FACTOR * -surfaces[i]['v2y'])
 
-    sm64.sm64_static_surfaces_load.argtypes = [ ct.POINTER(SM64Surface), ct.c_uint32 ]
-    sm64.sm64_static_surfaces_load(surface_array, len(surfaces))
+    return surface_array
 
 def get_all_surfaces():
     def add_mesh(matrix_world, mesh: bpy.types.Mesh, out):
@@ -205,26 +193,60 @@ def get_all_surfaces():
 
     return out
 
-def init_mesh_data(mesh: bpy.types.Mesh):
-    verts = []
-    edges = []
-    faces = []
+def initialize_all_data(texture_buffer):
+    if not ('libsm64_mario_texture' in bpy.data.images):
+        size = SM64_TEXTURE_WIDTH, SM64_TEXTURE_HEIGHT
+        image = bpy.data.images.new("libsm64_mario_texture", width=size[0], height=size[1])
+        pixels = [None] * size[0] * size[1]
+        i = 0
+        for y in range(size[1]):
+            for x in range(size[0]):
+                r = float(texture_buffer[i]) / 255
+                g = float(texture_buffer[i+1]) / 255
+                b = float(texture_buffer[i+2]) / 255
+                a = float(texture_buffer[i+3]) / 255
+                i += 4
+                pixels[(y * size[0]) + x] = [r, g, b, a]
+        pixels = [chan for px in pixels for chan in px]
+        image.pixels = pixels
 
-    for i in range(SM64_GEO_MAX_TRIANGLES):
-        verts.append((0,0,0))
-        verts.append((0,0,0))
-        verts.append((0,0,0))
-        edges.append((3*i+0, 3*i+1))
-        edges.append((3*i+1, 3*i+2))
-        edges.append((3*i+2, 3*i+0))
-        faces.append((3*i+0, 3*i+1, 3*i+2))
+    if not ('libsm64_mario_material' in bpy.data.materials):
+        mat = bpy.data.materials.new(name="libsm64_mario_material")
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        nodes.clear()
+        tex_node = nodes.new(type='ShaderNodeTexImage')
+        tex_node.image = bpy.data.images.get("libsm64_mario_texture")
+        color_node = nodes.new(type='ShaderNodeVertexColor')
+        diffuse0_node = nodes.new(type='ShaderNodeBsdfDiffuse')
+        diffuse1_node = nodes.new(type='ShaderNodeBsdfDiffuse')
+        mix_node = nodes.new(type='ShaderNodeMixShader')
+        out_node = nodes.new(type='ShaderNodeOutputMaterial')
+        links = mat.node_tree.links
+        links.new(tex_node.outputs[0], diffuse0_node.inputs[0])
+        links.new(tex_node.outputs[1], mix_node.inputs[0])
+        links.new(diffuse0_node.outputs[0], mix_node.inputs[2])
+        links.new(color_node.outputs[0], diffuse1_node.inputs[0])
+        links.new(diffuse1_node.outputs[0], mix_node.inputs[1])
+        links.new(mix_node.outputs[0], out_node.inputs[0])
 
-    mat = bpy.data.materials.new(name="libsm64_mario_material")
-    create_material(mat)
-
-    mesh.from_pydata(verts, edges, faces)
-    mesh.uv_layers.active = mesh.uv_layers.new(name="uv0")
-    mesh.materials.append(mat)
+    if not ('libsm64_mario_mesh' in bpy.data.meshes):
+        mesh = bpy.data.meshes.new('libsm64_mario_mesh')
+        mesh.vertex_colors.new()
+        verts = []
+        edges = []
+        faces = []
+        for i in range(SM64_GEO_MAX_TRIANGLES):
+            verts.append((0,0,0))
+            verts.append((0,0,0))
+            verts.append((0,0,0))
+            edges.append((3*i+0, 3*i+1))
+            edges.append((3*i+1, 3*i+2))
+            edges.append((3*i+2, 3*i+0))
+            faces.append((3*i+0, 3*i+1, 3*i+2))
+        mesh.from_pydata(verts, edges, faces)
+        mesh.uv_layers.active = mesh.uv_layers.new(name="uv0")
+        mesh.materials.append(mat)
 
 def update_mesh_data(mesh: bpy.types.Mesh):
     global mario_geo
@@ -262,55 +284,3 @@ def update_mesh_data(mesh: bpy.types.Mesh):
             1.0
         )
     mesh.update()
-
-def create_material(mat: bpy.types.Material):
-    mat.use_nodes = True
-
-    nodes = mat.node_tree.nodes
-    nodes.clear()
-    tex_node = nodes.new(type='ShaderNodeTexImage')
-    tex_node.image = bpy.data.images.get("libsm64_mario_texture")
-    color_node = nodes.new(type='ShaderNodeVertexColor')
-    diffuse0_node = nodes.new(type='ShaderNodeBsdfDiffuse')
-    diffuse1_node = nodes.new(type='ShaderNodeBsdfDiffuse')
-    mix_node = nodes.new(type='ShaderNodeMixShader')
-    out_node = nodes.new(type='ShaderNodeOutputMaterial')
-
-    links = mat.node_tree.links
-    links.new(tex_node.outputs[0], diffuse0_node.inputs[0])
-    links.new(tex_node.outputs[1], mix_node.inputs[0])
-    links.new(diffuse0_node.outputs[0], mix_node.inputs[2])
-    links.new(color_node.outputs[0], diffuse1_node.inputs[0])
-    links.new(diffuse1_node.outputs[0], mix_node.inputs[1])
-    links.new(mix_node.outputs[0], out_node.inputs[0])
-
-
-#   public enum SM64TerrainType
-#   {
-#       Grass  = 0x0000,
-#       Stone  = 0x0001,
-#       Snow   = 0x0002,
-#       Sand   = 0x0003,
-#       Spooky = 0x0004,
-#       Water  = 0x0005,
-#       Slide  = 0x0006,
-#   }
-#   public enum SM64SurfaceType
-#   {
-#       Default          = 0x0000,// Environment default
-#       Burning          = 0x0001,// Lava / Frostbite (in SL), but is used mostly for Lava
-#       Hangable         = 0x0005,// Ceiling that Mario can climb on
-#       Slow             = 0x0009,// Slow down Mario, unused
-#       VerySlippery     = 0x0013,// Very slippery, mostly used for slides
-#       Slippery         = 0x0014,// Slippery
-#       NotSlippery      = 0x0015,// Non-slippery, climbable
-#       ShallowQuicksand = 0x0021,// Shallow Quicksand (depth of 10 units)
-#       DeepQuicksand    = 0x0022,// Quicksand (lethal, slow, depth of 160 units)
-#       InstantQuicksand = 0x0023,// Quicksand (lethal, instant)
-#       Ice              = 0x002E,// Slippery Ice, in snow levels and THI's water floor
-#       Hard             = 0x0030,// Hard floor (Always has fall damage)
-#       HardSlippery     = 0x0035,// Hard and slippery (Always has fall damage)
-#       HardVerySlippery = 0x0036,// Hard and very slippery (Always has fall damage)
-#       HardNotSlippery  = 0x0037,// Hard and Non-slippery (Always has fall damage)
-#       VerticalWind     = 0x0038,// Death at bottom with vertical wind
-#   }

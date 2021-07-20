@@ -12,6 +12,14 @@ bl_info = {
 import bpy
 from . mario import insert_mario
 
+class LibSm64Properties(bpy.types.PropertyGroup):
+    rom_path : bpy.props.StringProperty(
+        name="Path",
+        description="Path to an unmodified US SM64 ROM", 
+        subtype='FILE_PATH',
+        default='~/sm64.us.z64'
+    )
+
 class Main_PT_Panel(bpy.types.Panel):
     bl_idname = "LIBSM64_PT_main_panel"
     bl_label = "libsm64"
@@ -21,8 +29,12 @@ class Main_PT_Panel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.operator('view3d.libsm64_insert_mario', text='Insert Mario')
+        scene = context.scene
+
+        col = layout.column()
+        col.label(text="SM64 US ROM")
+        col.prop(scene.libsm64, "rom_path")
+        col.operator(InsertMario_OT_Operator.bl_idname, text='Insert Mario')
 
 class InsertMario_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.libsm64_insert_mario"
@@ -30,10 +42,21 @@ class InsertMario_OT_Operator(bpy.types.Operator):
     bl_description = "Inserts a Mario into the scene"
 
     def execute(self, context):
-        insert_mario(bpy.context.scene.cursor.location)
+        scene = context.scene
+        insert_mario(scene.libsm64.rom_path, bpy.context.scene.cursor.location)
         return {'FINISHED'}
 
-register, unregister = bpy.utils.register_classes_factory((
+register_classes, unregister_classes = bpy.utils.register_classes_factory((
+    LibSm64Properties,
     Main_PT_Panel,
     InsertMario_OT_Operator
 ))
+
+def register():
+    register_classes()
+    bpy.types.Scene.libsm64 = bpy.props.PointerProperty(type=LibSm64Properties)
+
+def unregister():
+    unregister_classes()
+    del bpy.types.Scene.libsm64
+
