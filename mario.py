@@ -1,5 +1,4 @@
 import bpy
-import time
 import os
 import platform
 import ctypes as ct
@@ -12,6 +11,8 @@ SM64_TEXTURE_WIDTH = 64 * 11
 SM64_TEXTURE_HEIGHT = 64
 SM64_GEO_MAX_TRIANGLES = 1024
 SM64_SCALE_FACTOR = 50
+
+original_fps = 0
 
 class SM64Surface(ct.Structure):
     _fields_ = [
@@ -69,7 +70,7 @@ mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
 
 def insert_mario(rom_path: str, scale: float, pos):
-    global sm64, mario_id, SM64_SCALE_FACTOR
+    global sm64, mario_id, SM64_SCALE_FACTOR, original_fps
 
     if mario_id >= 0:
         return
@@ -98,6 +99,10 @@ def insert_mario(rom_path: str, scale: float, pos):
     if 'LibSM64 Mario' in bpy.data.objects:
         bpy.data.objects.remove(bpy.data.objects['LibSM64 Mario'])
 
+    original_fps = bpy.context.scene.render.fps
+    bpy.context.scene.render.fps = 30
+    bpy.ops.screen.animation_play()
+
     surface_array = get_surface_array_from_scene()
 
     sm64.sm64_static_surfaces_load(surface_array, len(surface_array))
@@ -112,16 +117,17 @@ def insert_mario(rom_path: str, scale: float, pos):
     bpy.context.scene.collection.objects.link(mario_obj)
 
     start_input_reader()
-    bpy.app.timers.register(tick_mario)
 
-def tick_mario():
+    bpy.app.handlers.frame_change_pre.append(tick_mario)
+
+def tick_mario(x0, x1):
     global sm64, mario_id, mario_state, mario_geo
-
-    start_time = time.perf_counter()
 
     if not ('LibSM64 Mario' in bpy.data.objects):
         sm64.sm64_mario_delete(mario_id)
-        bpy.app.timers.unregister(tick_mario)
+        bpy.app.handlers.frame_change_pre.clear()
+        bpy.context.scene.render.fps = original_fps
+        bpy.ops.screen.animation_cancel()
         mario_id = -1
         return 0
 
@@ -151,8 +157,6 @@ def tick_mario():
         bpy.ops.view3d.view_center_cursor(context_override)
 
     update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
-
-    return 1 / 30 - (time.perf_counter() - start_time)
 
 def get_surface_array_from_scene():
     surfaces = get_all_surfaces()

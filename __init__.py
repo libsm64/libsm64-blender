@@ -10,6 +10,7 @@ bl_info = {
 }
 
 import bpy
+import platform
 from . mario import insert_mario
 
 class LibSm64Properties(bpy.types.PropertyGroup):
