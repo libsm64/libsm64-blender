@@ -6,6 +6,7 @@ import ctypes as ct
 import mathutils
 from typing import cast, List
 from . input_reader import sample_input_reader, start_input_reader
+from . collision_types import COLLISION_TYPES
 
 SM64_TEXTURE_WIDTH = 64 * 11
 SM64_TEXTURE_HEIGHT = 64
@@ -67,11 +68,13 @@ mario_inputs = SM64MarioInputs()
 mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
 
-def insert_mario(rom_path: str, pos):
-    global sm64, mario_id
+def insert_mario(rom_path: str, scale: float, pos):
+    global sm64, mario_id, SM64_SCALE_FACTOR
 
     if mario_id >= 0:
         return
+
+    SM64_SCALE_FACTOR = scale
 
     if sm64 == None:
         this_path = os.path.dirname(os.path.realpath(__file__))
@@ -156,9 +159,9 @@ def get_surface_array_from_scene():
     surface_array = (SM64Surface * len(surfaces))()
 
     for i in range(len(surfaces)):
-        surface_array[i].surftype = 0
+        surface_array[i].surftype = surfaces[i]['surftype']
         surface_array[i].force = 0
-        surface_array[i].terrain = 1
+        surface_array[i].terrain = surfaces[i]['terrain']
         surface_array[i].v0x = int(SM64_SCALE_FACTOR *  surfaces[i]['v0x'])
         surface_array[i].v0y = int(SM64_SCALE_FACTOR *  surfaces[i]['v0z'])
         surface_array[i].v0z = int(SM64_SCALE_FACTOR * -surfaces[i]['v0y'])
@@ -172,7 +175,8 @@ def get_surface_array_from_scene():
     return surface_array
 
 def get_all_surfaces():
-    def add_mesh(matrix_world, mesh: bpy.types.Mesh, out):
+    def add_mesh(obj: bpy.types.Object, out):
+        mesh = obj.data
         mesh.calc_loop_triangles()
         for tri in cast(List[bpy.types.MeshLoopTriangle], mesh.loop_triangles):
             out_elem = {}
@@ -181,10 +185,28 @@ def get_all_surfaces():
                 vx = mesh.vertices[tri_idx].co.x
                 vy = mesh.vertices[tri_idx].co.y
                 vz = mesh.vertices[tri_idx].co.z
-                vworld = matrix_world @ mathutils.Vector((vx, vy, vz, 1))
+                vworld = obj.matrix_world @ mathutils.Vector((vx, vy, vz, 1))
                 out_elem['v' + str(i) + 'x'] = vworld.x
                 out_elem['v' + str(i) + 'y'] = vworld.y
                 out_elem['v' + str(i) + 'z'] = vworld.z
+
+            out_elem['terrain'] = COLLISION_TYPES['TERRAIN_GRASS']
+            seek = obj
+            while True:
+                if hasattr(seek, 'sm64_obj_type') and seek.sm64_obj_type == 'Area Root' and hasattr(seek, 'terrainEnum'):
+                    out_elem['terrain'] = COLLISION_TYPES[seek.terrainEnum]
+                    break
+                if seek.parent:
+                    seek = seek.parent
+                else:
+                    break
+
+            mat = mesh.materials[tri.material_index]
+            if hasattr(mat, 'collision_type_simple'):
+                out_elem['surftype'] = COLLISION_TYPES[mat.collision_type_simple]
+            else:
+                out_elem['surftype'] = COLLISION_TYPES['SURFACE_DEFAULT']
+
             out.append(out_elem)
 
     scene = bpy.context.window.scene
@@ -192,7 +214,7 @@ def get_all_surfaces():
 
     for obj in cast(List[bpy.types.Object], scene.collection.all_objects):
         if isinstance(obj.data, bpy.types.Mesh):
-            add_mesh(obj.matrix_world, obj.data, out)
+            add_mesh(obj, out)
 
     return out
 
