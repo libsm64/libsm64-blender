@@ -10,6 +10,7 @@ Practically, this means if you're making levels with Fast64 in Blender, you can 
 ### Near-term Features
 - Global water level support
 - Water boxes support
+- Toggles to give wing/metal/vanish cap
 
 ### Far-term Features
 - Moving platform support
