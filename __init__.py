@@ -49,7 +49,9 @@ class InsertMario_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        insert_mario(scene.libsm64.rom_path, scene.libsm64.mario_scale, bpy.context.scene.cursor.location)
+        err = insert_mario(scene.libsm64.rom_path, scene.libsm64.mario_scale, bpy.context.scene.cursor.location)
+        if err != None:
+            self.report({"ERROR"}, err)
         return {'FINISHED'}
 
 register_classes, unregister_classes = bpy.utils.register_classes_factory((

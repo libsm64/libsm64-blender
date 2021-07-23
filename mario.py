@@ -99,10 +99,6 @@ def insert_mario(rom_path: str, scale: float, pos):
     if 'LibSM64 Mario' in bpy.data.objects:
         bpy.data.objects.remove(bpy.data.objects['LibSM64 Mario'])
 
-    original_fps = bpy.context.scene.render.fps
-    bpy.context.scene.render.fps = 30
-    bpy.ops.screen.animation_play()
-
     surface_array = get_surface_array_from_scene()
 
     sm64.sm64_static_surfaces_load(surface_array, len(surface_array))
@@ -113,12 +109,20 @@ def insert_mario(rom_path: str, scale: float, pos):
         -int(SM64_SCALE_FACTOR * pos.y),
     )
 
+    if mario_id < 0:
+        return "There is no ground under the 3D cursor where mario will spawn"
+
     mario_obj = bpy.data.objects.new('LibSM64 Mario', bpy.data.meshes['libsm64_mario_mesh'])
     bpy.context.scene.collection.objects.link(mario_obj)
 
     start_input_reader()
 
+    original_fps = bpy.context.scene.render.fps
+    bpy.context.scene.render.fps = 30
+    bpy.ops.screen.animation_play()
     bpy.app.handlers.frame_change_pre.append(tick_mario)
+
+    return None
 
 def tick_mario(x0, x1):
     global sm64, mario_id, mario_state, mario_geo
