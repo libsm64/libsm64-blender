@@ -1,4 +1,5 @@
 import bpy
+import bmesh
 import os
 import platform
 import ctypes as ct
@@ -68,9 +69,10 @@ mario_id = -1
 mario_inputs = SM64MarioInputs()
 mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
+tick_count = 0
 
 def insert_mario(rom_path: str, scale: float, pos):
-    global sm64, mario_id, SM64_SCALE_FACTOR, original_fps
+    global sm64, mario_id, SM64_SCALE_FACTOR, original_fps, tick_count
 
     if mario_id >= 0:
         return
@@ -122,10 +124,12 @@ def insert_mario(rom_path: str, scale: float, pos):
     bpy.ops.screen.animation_play()
     bpy.app.handlers.frame_change_pre.append(tick_mario)
 
+    tick_count = 0
+
     return None
 
 def tick_mario(x0, x1):
-    global sm64, mario_id, mario_state, mario_geo
+    global sm64, mario_id, mario_state, mario_geo, tick_count
 
     if not ('LibSM64 Mario' in bpy.data.objects):
         sm64.sm64_mario_delete(mario_id)
@@ -160,7 +164,12 @@ def tick_mario(x0, x1):
         context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
         bpy.ops.view3d.view_center_cursor(context_override)
 
-    update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
+    if tick_count < 1:
+        update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
+    else:
+        update_mesh_data_fast(bpy.data.meshes['libsm64_mario_mesh'])
+
+    tick_count += 1
 
 def get_surface_array_from_scene():
     surfaces = get_all_surfaces()
@@ -322,3 +331,21 @@ def update_mesh_data(mesh: bpy.types.Mesh):
             1.0
         )
     mesh.update()
+
+def update_mesh_data_fast(mesh: bpy.types.Mesh):
+    global mario_geo
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    for i in range(mario_geo.numTrianglesUsed):
+        bm.verts[3*i+0].co.x =  mario_geo.position_data[9*i+0] / SM64_SCALE_FACTOR
+        bm.verts[3*i+0].co.z =  mario_geo.position_data[9*i+1] / SM64_SCALE_FACTOR
+        bm.verts[3*i+0].co.y = -mario_geo.position_data[9*i+2] / SM64_SCALE_FACTOR
+        bm.verts[3*i+1].co.x =  mario_geo.position_data[9*i+3] / SM64_SCALE_FACTOR
+        bm.verts[3*i+1].co.z =  mario_geo.position_data[9*i+4] / SM64_SCALE_FACTOR
+        bm.verts[3*i+1].co.y = -mario_geo.position_data[9*i+5] / SM64_SCALE_FACTOR
+        bm.verts[3*i+2].co.x =  mario_geo.position_data[9*i+6] / SM64_SCALE_FACTOR
+        bm.verts[3*i+2].co.z =  mario_geo.position_data[9*i+7] / SM64_SCALE_FACTOR
+        bm.verts[3*i+2].co.y = -mario_geo.position_data[9*i+8] / SM64_SCALE_FACTOR
+    bm.to_mesh(mesh)
+    bm.free()
