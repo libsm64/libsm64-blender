@@ -4,25 +4,23 @@ from subprocess import PIPE, Popen
 from queue import Queue
 
 g_queue = None
-g_proc = None
 g_running = False
 
-def enqueue_output():
-    global g_queue, g_proc
+def enqueue_output(exe_path):
+    global g_queue, g_running
+    g_running = True
+    proc = Popen([exe_path], shell=True, stdout=PIPE, bufsize=1)
+    g_queue = Queue()
     while g_running:
-        g_queue.put(g_proc.stdout.readline())
-    g_proc.stdout.close()
-    g_proc.kill()
+        g_queue.put(proc.stdout.readline())
+    proc.stdout.close()
+    proc.kill()
 
 def start_input_reader():
-    global g_queue, g_proc, g_running
     this_path = os.path.dirname(os.path.realpath(__file__))
     exe_path = os.path.join(this_path, 'lib', 'controller.exe')
-    g_proc = Popen([exe_path], shell=True, stdout=PIPE, bufsize=1)
-    g_queue = Queue()
-    thread = Thread(target=enqueue_output)
+    thread = Thread(target=enqueue_output, args=(exe_path,))
     thread.daemon = True
-    g_running = True
     thread.start()
 
 def stop_input_reader():
