@@ -33,6 +33,7 @@ int main(int argc, char* args[]) {
             SDL_GameControllerGetButton(ctrl, 2),
             SDL_GameControllerGetButton(ctrl, 9)
         );
-        usleep(20000);
+        fflush(stdout);
+        usleep(30000);
     }
 }

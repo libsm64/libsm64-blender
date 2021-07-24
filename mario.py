@@ -5,8 +5,12 @@ import platform
 import ctypes as ct
 import mathutils
 from typing import cast, List
-from . input_reader import sample_input_reader, start_input_reader
 from . collision_types import COLLISION_TYPES
+
+if platform.system() == 'Windows':
+    from . input_reader_win import sample_input_reader, start_input_reader
+else:
+    from . input_reader import sample_input_reader, start_input_reader
 
 SM64_TEXTURE_WIDTH = 64 * 11
 SM64_TEXTURE_HEIGHT = 64
