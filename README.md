@@ -4,6 +4,7 @@ This add-on integrates [libsm64](https://github.com/libsm64/libsm64) into Blende
 Practically, this means if you're making levels with Fast64 in Blender, you can use this add-on to drop a controller-playable Mario into your scene to run around and test your terrain layout.
 
 **Warning:** This plugin hasn't been battle-tested for very long, save often and use at your own risk!
+If you find a way to crash it, please post an issue or otherwise let me know!
 
 ![Example map](https://github.com/libsm64/libsm64-blender/raw/master/docs/example.gif)
 ###### Example map by Agent X
