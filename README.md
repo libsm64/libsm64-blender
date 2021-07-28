@@ -16,7 +16,6 @@ With the add-on enabled there should be a LibSM64 tab in the properties sidebar.
 - Fast64 terrain type and collision surface type support
 
 ### Near-term Features
-- Global water level support
 - Water boxes support
 - Toggles to give wing/metal/vanish cap
 
