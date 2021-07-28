@@ -3,6 +3,12 @@
 This add-on integrates [libsm64](https://github.com/libsm64/libsm64) into Blender and provides various additional integrations with [Fast64](https://bitbucket.org/kurethedead/fast64/).
 Practically, this means if you're making levels with Fast64 in Blender, you can use this add-on to drop a controller-playable Mario into your scene to run around and test your terrain layout.
 
+### Installation
+Download the latest release zip [from here](https://github.com/libsm64/libsm64-blender/releases). In Blender, go to Edit -> Preferences -> Add-Ons and click the "Install" button to install the plugin from the zip file. Find the libsm64-blender addon in the addon list and enable it. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
+
+### Usage
+With the add-on enabled there should be a LibSM64 tab in the properties sidebar. Browse to an unmodified SM64 US z64 ROM, and then click the "Insert Mario" button to insert a controllable Mario at the 3D cursor location. To stop the simulation just delete the "LibSM64 Mario" object from the scene.
+
 ### Current Features
 - Insert playable Mario into Blender scene
 - Fast64 terrain type and collision surface type support
