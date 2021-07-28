@@ -68,54 +68,55 @@ class SM64MarioGeometryBuffers(ct.Structure):
         pass
 
 sm64: ct.CDLL = None
+sm64_mario_id = -1
 
-mario_id = -1
 mario_inputs = SM64MarioInputs()
 mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
 tick_count = 0
 
 def insert_mario(rom_path: str, scale: float, pos):
-    global sm64, mario_id, SM64_SCALE_FACTOR, original_fps, tick_count
-
-    if mario_id >= 0:
-        return
+    global sm64, sm64_mario_id, SM64_SCALE_FACTOR, original_fps, tick_count
 
     SM64_SCALE_FACTOR = scale
 
-    if sm64 == None:
-        this_path = os.path.dirname(os.path.realpath(__file__))
-        dll_name = 'sm64.dll' if platform.system() == 'Windows' else 'libsm64.so'
-        dll_path = os.path.join(this_path, 'lib', dll_name)
-        sm64 = ct.cdll.LoadLibrary(dll_path)
-
-        sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
-        sm64.sm64_static_surfaces_load.argtypes = [ ct.POINTER(SM64Surface), ct.c_uint32 ]
-        sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ]
-        sm64.sm64_mario_create.restype = ct.c_int32
-        sm64.sm64_mario_tick.argtypes = [ ct.c_uint32, ct.POINTER(SM64MarioInputs), ct.POINTER(SM64MarioState), ct.POINTER(SM64MarioGeometryBuffers) ]
-
-        with open(os.path.expanduser(rom_path), 'rb') as file:
-            rom_bytes = bytearray(file.read())
-            rom_chars = ct.c_char * len(rom_bytes)
-            texture_buff = (ct.c_ubyte * (4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT))()
-            sm64.sm64_global_init(rom_chars.from_buffer(rom_bytes), texture_buff, None)
-            initialize_all_data(texture_buff)
-
     if 'LibSM64 Mario' in bpy.data.objects:
-        bpy.data.objects.remove(bpy.data.objects['LibSM64 Mario'])
+        return
+
+    if sm64 != None:
+        sm64.sm64_global_terminate()
+
+    this_path = os.path.dirname(os.path.realpath(__file__))
+    dll_name = 'sm64.dll' if platform.system() == 'Windows' else 'libsm64.so'
+    dll_path = os.path.join(this_path, 'lib', dll_name)
+    sm64 = ct.cdll.LoadLibrary(dll_path)
+
+    sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
+    sm64.sm64_static_surfaces_load.argtypes = [ ct.POINTER(SM64Surface), ct.c_uint32 ]
+    sm64.sm64_mario_create.argtypes = [ ct.c_int16, ct.c_int16, ct.c_int16 ]
+    sm64.sm64_mario_create.restype = ct.c_int32
+    sm64.sm64_mario_tick.argtypes = [ ct.c_uint32, ct.POINTER(SM64MarioInputs), ct.POINTER(SM64MarioState), ct.POINTER(SM64MarioGeometryBuffers) ]
+
+    with open(os.path.expanduser(rom_path), 'rb') as file:
+        rom_bytes = bytearray(file.read())
+        rom_chars = ct.c_char * len(rom_bytes)
+        texture_buff = (ct.c_ubyte * (4 * SM64_TEXTURE_WIDTH * SM64_TEXTURE_HEIGHT))()
+        sm64.sm64_global_init(rom_chars.from_buffer(rom_bytes), texture_buff, None)
+        initialize_all_data(texture_buff)
 
     surface_array = get_surface_array_from_scene()
 
     sm64.sm64_static_surfaces_load(surface_array, len(surface_array))
 
-    mario_id = sm64.sm64_mario_create(
+    sm64_mario_id = sm64.sm64_mario_create(
         int(SM64_SCALE_FACTOR * pos.x),
         int(SM64_SCALE_FACTOR * pos.z) + 1,
         -int(SM64_SCALE_FACTOR * pos.y),
     )
 
-    if mario_id < 0:
+    if sm64_mario_id < 0:
+        sm64.sm64_global_terminate()
+        sm64 = None
         return "There is no ground under the 3D cursor where mario will spawn"
 
     mario_obj = bpy.data.objects.new('LibSM64 Mario', bpy.data.meshes['libsm64_mario_mesh'])
@@ -133,14 +134,15 @@ def insert_mario(rom_path: str, scale: float, pos):
     return None
 
 def tick_mario(x0, x1):
-    global sm64, mario_id, mario_state, mario_geo, tick_count
+    global sm64, sm64_mario_id, mario_state, mario_geo, tick_count
 
     if not ('LibSM64 Mario' in bpy.data.objects):
-        sm64.sm64_mario_delete(mario_id)
         bpy.app.handlers.frame_change_pre.clear()
         bpy.context.scene.render.fps = original_fps
         bpy.ops.screen.animation_cancel()
-        mario_id = -1
+        sm64_mario_id = -1
+        sm64.sm64_global_terminate()
+        sm64 = None
         return 0
 
     sample_input_reader(mario_inputs)
@@ -156,7 +158,7 @@ def tick_mario(x0, x1):
     mario_inputs.camLookX = look_dir.x
     mario_inputs.camLookZ = -look_dir.y
 
-    sm64.sm64_mario_tick(mario_id, ct.byref(mario_inputs), ct.byref(mario_state), ct.byref(mario_geo))
+    sm64.sm64_mario_tick(sm64_mario_id, ct.byref(mario_inputs), ct.byref(mario_state), ct.byref(mario_geo))
 
     bpy.context.scene.cursor.location = (
         mario_state.posX / SM64_SCALE_FACTOR,
@@ -168,7 +170,7 @@ def tick_mario(x0, x1):
         context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
         bpy.ops.view3d.view_center_cursor(context_override)
 
-    if tick_count < 1:
+    if tick_count < 15: # This is enough frames to get Mario to open his eyes, then we'll stop updating uv/color
         update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
     else:
         update_mesh_data_fast(bpy.data.meshes['libsm64_mario_mesh'])
