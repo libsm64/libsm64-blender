@@ -11,6 +11,9 @@ If you find a way to crash it, please post an issue or otherwise let me know!
 ###### Example map by Agent X
 
 ### Installation
+
+Only Windows and linux are currently supported, no MacOS support yet unfortunately.
+
 Download the latest release zip [from here](https://github.com/libsm64/libsm64-blender/releases). In Blender, go to Edit -> Preferences -> Add-Ons and click the "Install" button to install the plugin from the zip file. Find the libsm64-blender addon in the addon list and enable it. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
 
 ### Usage
