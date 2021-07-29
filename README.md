@@ -8,7 +8,7 @@ Practically, this means if you're making levels with Fast64 in Blender, you can 
 If you find a way to crash it, please post an issue or otherwise let me know!
 
 ![Example map](https://github.com/libsm64/libsm64-blender/raw/master/docs/example.gif)
-###### Example map by Agent X
+###### Example map by [Agent-11](https://github.com/agent-11)
 
 ### Installation
 
