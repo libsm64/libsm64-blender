@@ -8,9 +8,9 @@ from typing import cast, List
 from . collision_types import COLLISION_TYPES
 
 if platform.system() == 'Windows':
-    from . input_reader_win import sample_input_reader, start_input_reader
+    from . input_reader_win import sample_input_reader, start_input_reader, stop_input_reader
 else:
-    from . input_reader import sample_input_reader, start_input_reader
+    from . input_reader import sample_input_reader, start_input_reader, stop_input_reader
 
 SM64_TEXTURE_WIDTH = 64 * 11
 SM64_TEXTURE_HEIGHT = 64
@@ -80,11 +80,19 @@ def insert_mario(rom_path: str, scale: float, pos):
 
     SM64_SCALE_FACTOR = scale
 
+    try:
+        bpy.ops.object.mode_set(mode='OBJECT')
+    except:
+        pass
+    bpy.ops.object.select_all(action='DESELECT')
     if 'LibSM64 Mario' in bpy.data.objects:
-        return
+        bpy.data.objects['LibSM64 Mario'].select_set(True) # Blender 2.8x
+        bpy.ops.object.delete() 
+
+    stop_input_reader()
 
     if sm64 != None:
-        sm64.sm64_global_terminate()
+        stop_tick_mario()
 
     this_path = os.path.dirname(os.path.realpath(__file__))
     dll_name = 'sm64.dll' if platform.system() == 'Windows' else 'libsm64.so'
@@ -133,16 +141,21 @@ def insert_mario(rom_path: str, scale: float, pos):
 
     return None
 
+def stop_tick_mario():
+    global sm64, sm64_mario_id, original_fps
+    bpy.app.handlers.frame_change_pre.clear()
+    bpy.context.scene.render.fps = original_fps
+    bpy.ops.screen.animation_cancel()
+    sm64_mario_id = -1
+    sm64.sm64_global_terminate()
+    sm64 = None
+    stop_input_reader()
+
 def tick_mario(x0, x1):
     global sm64, sm64_mario_id, mario_state, mario_geo, tick_count
 
     if not ('LibSM64 Mario' in bpy.data.objects):
-        bpy.app.handlers.frame_change_pre.clear()
-        bpy.context.scene.render.fps = original_fps
-        bpy.ops.screen.animation_cancel()
-        sm64_mario_id = -1
-        sm64.sm64_global_terminate()
-        sm64 = None
+        stop_tick_mario()
         return 0
 
     sample_input_reader(mario_inputs)
@@ -224,11 +237,11 @@ def get_all_surfaces():
                 else:
                     break
 
-            mat = mesh.materials[tri.material_index]
-            if hasattr(mat, 'collision_type_simple'):
-                out_elem['surftype'] = COLLISION_TYPES[mat.collision_type_simple]
-            else:
-                out_elem['surftype'] = COLLISION_TYPES['SURFACE_DEFAULT']
+            out_elem['surftype'] = COLLISION_TYPES['SURFACE_DEFAULT']
+            if tri.material_index > 0 and tri.material_index < len(mesh.materials):
+                mat = mesh.materials[tri.material_index]
+                if hasattr(mat, 'collision_type_simple'):
+                    out_elem['surftype'] = COLLISION_TYPES[mat.collision_type_simple]
 
             out.append(out_elem)
 
