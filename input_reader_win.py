@@ -5,18 +5,24 @@ from queue import Queue
 
 g_queue = None
 g_running = False
+g_shouldStop = False
 
 def enqueue_output(exe_path):
-    global g_queue, g_running
-    g_running = True
-    proc = Popen([exe_path], shell=True, stdout=PIPE, bufsize=1)
+    global g_queue, g_running, g_shouldStop
+    proc = Popen([exe_path], shell=True, stdout=PIPE)
     g_queue = Queue()
-    while g_running:
-        g_queue.put(proc.stdout.readline())
+    while not g_shouldStop:
+        g_queue.put(proc.stdout.readline().decode('utf-8'))
     proc.stdout.close()
     proc.kill()
+    g_running = False
 
 def start_input_reader():
+    global g_running, g_shouldStop
+    g_shouldStop = False
+    if g_running:
+        return
+    g_running = True
     this_path = os.path.dirname(os.path.realpath(__file__))
     exe_path = os.path.join(this_path, 'lib', 'controller.exe')
     thread = Thread(target=enqueue_output, args=(exe_path,))
@@ -24,8 +30,8 @@ def start_input_reader():
     thread.start()
 
 def stop_input_reader():
-    global g_running
-    g_running = False
+    global g_shouldStop
+    g_shouldStop = True
 
 def sample_input_reader(mario_inputs):
     global g_queue
@@ -35,7 +41,9 @@ def sample_input_reader(mario_inputs):
         line = g_queue.get()
     if not has_line:
         return
-    vals = [int(x) for x in line.decode('utf-8').split()]
+    vals = [int(x) for x in line.split()]
+    if len(vals) < 5:
+        return
     mario_inputs.stickX = _read_axis(float(vals[0]))
     mario_inputs.stickY = _read_axis(float(vals[1]))
     mario_inputs.buttonA = vals[2] != 0
