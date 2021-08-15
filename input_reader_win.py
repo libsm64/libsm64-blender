@@ -12,7 +12,10 @@ def enqueue_output(exe_path):
     proc = Popen([exe_path], shell=True, stdout=PIPE)
     g_queue = Queue()
     while not g_shouldStop:
-        g_queue.put(proc.stdout.readline().decode('utf-8'))
+        if proc.poll() is None:
+            g_queue.put(proc.stdout.readline().decode('utf-8'))
+        else:
+            g_shouldStop = True
     proc.stdout.close()
     proc.kill()
     g_running = False
@@ -40,15 +43,24 @@ def sample_input_reader(mario_inputs):
         has_line = True
         line = g_queue.get()
     if not has_line:
+        _sample_empty_inputs(mario_inputs)
         return
     vals = [int(x) for x in line.split()]
     if len(vals) < 5:
+        _sample_empty_inputs(mario_inputs)
         return
     mario_inputs.stickX = _read_axis(float(vals[0]))
     mario_inputs.stickY = _read_axis(float(vals[1]))
     mario_inputs.buttonA = vals[2] != 0
     mario_inputs.buttonB = vals[3] != 0
     mario_inputs.buttonZ = vals[4] != 0
+
+def _sample_empty_inputs(mario_inputs):
+    mario_inputs.stickX = 0.0
+    mario_inputs.stickY = 0.0
+    mario_inputs.buttonA = False
+    mario_inputs.buttonB = False
+    mario_inputs.buttonZ = False
 
 def _read_axis(val):
     val /= 32768.0
