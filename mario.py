@@ -118,9 +118,9 @@ def insert_mario(rom_path: str, scale: float, pos):
         sm64.sm64_global_init(rom_chars.from_buffer(rom_bytes), texture_buff, None)
         initialize_all_data(texture_buff)
 
-    surface_array = get_surface_array_from_scene()
+    (surface_array, surface_array_len) = get_surface_array_from_scene()
 
-    sm64.sm64_static_surfaces_load(surface_array, len(surface_array))
+    sm64.sm64_static_surfaces_load(surface_array, surface_array_len)
 
     sm64_mario_id = sm64.sm64_mario_create(0, 0, 0)
 
@@ -192,27 +192,56 @@ def tick_mario(x0, x1):
 
     tick_count += 1
 
+def clamp_bounds(val):
+    val = int(val)
+    bounds = 0x7FFF
+    if val < -bounds:
+        return (-bounds, False)
+    if val > bounds:
+        return (bounds, False)
+    return (val, True)
+
 def get_surface_array_from_scene():
     global origin_offset
 
     surfaces = get_all_surfaces()
     surface_array = (SM64Surface * len(surfaces))()
 
-    for i in range(len(surfaces)):
-        surface_array[i].surftype = surfaces[i]['surftype']
-        surface_array[i].force = 0
-        surface_array[i].terrain = surfaces[i]['terrain']
-        surface_array[i].v0x = int(SM64_SCALE_FACTOR * ( surfaces[i]['v0x'] - origin_offset[0]))
-        surface_array[i].v0y = int(SM64_SCALE_FACTOR * ( surfaces[i]['v0z'] - origin_offset[2]))
-        surface_array[i].v0z = int(SM64_SCALE_FACTOR * (-surfaces[i]['v0y'] + origin_offset[1]))
-        surface_array[i].v1x = int(SM64_SCALE_FACTOR * ( surfaces[i]['v1x'] - origin_offset[0]))
-        surface_array[i].v1y = int(SM64_SCALE_FACTOR * ( surfaces[i]['v1z'] - origin_offset[2]))
-        surface_array[i].v1z = int(SM64_SCALE_FACTOR * (-surfaces[i]['v1y'] + origin_offset[1]))
-        surface_array[i].v2x = int(SM64_SCALE_FACTOR * ( surfaces[i]['v2x'] - origin_offset[0]))
-        surface_array[i].v2y = int(SM64_SCALE_FACTOR * ( surfaces[i]['v2z'] - origin_offset[2]))
-        surface_array[i].v2z = int(SM64_SCALE_FACTOR * (-surfaces[i]['v2y'] + origin_offset[1]))
+    j = 0
 
-    return surface_array
+    for i in range(len(surfaces)):
+        (v0x, in00) = clamp_bounds(SM64_SCALE_FACTOR * ( surfaces[i]['v0x'] - origin_offset[0]))
+        (v0y, in01) = clamp_bounds(SM64_SCALE_FACTOR * ( surfaces[i]['v0z'] - origin_offset[2]))
+        (v0z, in02) = clamp_bounds(SM64_SCALE_FACTOR * (-surfaces[i]['v0y'] + origin_offset[1]))
+        (v1x, in10) = clamp_bounds(SM64_SCALE_FACTOR * ( surfaces[i]['v1x'] - origin_offset[0]))
+        (v1y, in11) = clamp_bounds(SM64_SCALE_FACTOR * ( surfaces[i]['v1z'] - origin_offset[2]))
+        (v1z, in12) = clamp_bounds(SM64_SCALE_FACTOR * (-surfaces[i]['v1y'] + origin_offset[1]))
+        (v2x, in20) = clamp_bounds(SM64_SCALE_FACTOR * ( surfaces[i]['v2x'] - origin_offset[0]))
+        (v2y, in21) = clamp_bounds(SM64_SCALE_FACTOR * ( surfaces[i]['v2z'] - origin_offset[2]))
+        (v2z, in22) = clamp_bounds(SM64_SCALE_FACTOR * (-surfaces[i]['v2y'] + origin_offset[1]))
+
+        if not in00 and not in01 and not in02:
+            continue
+        if not in10 and not in11 and not in12:
+            continue
+        if not in20 and not in21 and not in22:
+            continue
+
+        surface_array[j].surftype = surfaces[i]['surftype']
+        surface_array[j].force = 0
+        surface_array[j].terrain = surfaces[i]['terrain']
+        surface_array[j].v0x = v0x
+        surface_array[j].v0y = v0y
+        surface_array[j].v0z = v0z
+        surface_array[j].v1x = v1x
+        surface_array[j].v1y = v1y
+        surface_array[j].v1z = v1z
+        surface_array[j].v2x = v2x
+        surface_array[j].v2y = v2y
+        surface_array[j].v2z = v2z
+        j += 1
+
+    return (surface_array, j)
 
 def get_all_surfaces():
     def add_mesh(obj: bpy.types.Object, out):
