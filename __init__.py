@@ -20,6 +20,10 @@ class LibSm64Properties(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default=('c:\\sm64.us.z64' if platform.system() == 'Windows' else '~/sm64.us.z64')
     )
+    camera_follow : bpy.props.BoolProperty (
+        name="Follow Mario with 3D cursor + camera",
+        default=True
+    )
     mario_scale : bpy.props.FloatProperty(
         name="Blender to SM64 Scale",
         default=100
@@ -40,6 +44,7 @@ class Main_PT_Panel(bpy.types.Panel):
         prop_split(col, scene.libsm64, "mario_scale", "Blender to SM64 Scale")
         col.label(text="SM64 US ROM (Unmodified, 8 MB, z64)")
         col.prop(scene.libsm64, "rom_path")
+        col.prop(scene.libsm64, "camera_follow")
         col.operator(InsertMario_OT_Operator.bl_idname, text='Insert Mario')
 
 class InsertMario_OT_Operator(bpy.types.Operator):
@@ -49,7 +54,7 @@ class InsertMario_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        err = insert_mario(scene.libsm64.rom_path, scene.libsm64.mario_scale, bpy.context.scene.cursor.location)
+        err = insert_mario(scene.libsm64.rom_path, scene.libsm64.mario_scale, scene.libsm64.camera_follow)
         if err != None:
             self.report({"ERROR"}, err)
         return {'FINISHED'}

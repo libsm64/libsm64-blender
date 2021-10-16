@@ -19,6 +19,7 @@ SM64_SCALE_FACTOR = 50
 
 origin_offset = [0.0, 0.0, 0.0]
 original_fps = 0
+original_cursor_pos = [0.0, 0.0, 0.0]
 
 class SM64Surface(ct.Structure):
     _fields_ = [
@@ -74,10 +75,11 @@ sm64_mario_id = -1
 mario_inputs = SM64MarioInputs()
 mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
+follow_cam = False
 tick_count = 0
 
-def insert_mario(rom_path: str, scale: float, pos):
-    global sm64, sm64_mario_id, SM64_SCALE_FACTOR, original_fps, tick_count, origin_offset
+def insert_mario(rom_path: str, scale: float, camera_follow: bool):
+    global sm64, sm64_mario_id, SM64_SCALE_FACTOR, original_fps, tick_count, origin_offset, original_cursor_pos, follow_cam
 
     SM64_SCALE_FACTOR = scale
 
@@ -87,9 +89,16 @@ def insert_mario(rom_path: str, scale: float, pos):
         pass
     bpy.ops.object.select_all(action='DESELECT')
 
-    origin_offset[0] = pos.x
-    origin_offset[1] = pos.y
-    origin_offset[2] = pos.z
+    original_cursor_pos = [
+        bpy.context.scene.cursor.location.x,
+        bpy.context.scene.cursor.location.y,
+        bpy.context.scene.cursor.location.z
+    ]
+    follow_cam = camera_follow
+
+    origin_offset[0] = bpy.context.scene.cursor.location.x
+    origin_offset[1] = bpy.context.scene.cursor.location.y
+    origin_offset[2] = bpy.context.scene.cursor.location.z
 
     if 'LibSM64 Mario' in bpy.data.objects:
         bpy.data.objects['LibSM64 Mario'].select_set(True) # Blender 2.8x
@@ -144,9 +153,14 @@ def insert_mario(rom_path: str, scale: float, pos):
     return None
 
 def stop_tick_mario():
-    global sm64, sm64_mario_id, original_fps
+    global sm64, sm64_mario_id, original_fps, original_cursor_pos
     bpy.app.handlers.frame_change_pre.clear()
     bpy.context.scene.render.fps = original_fps
+    bpy.context.scene.cursor.location = (
+        original_cursor_pos[0],
+        original_cursor_pos[1],
+        original_cursor_pos[2]
+    )
     bpy.ops.screen.animation_cancel()
     sm64_mario_id = -1
     sm64.sm64_global_terminate()
@@ -154,7 +168,7 @@ def stop_tick_mario():
     stop_input_reader()
 
 def tick_mario(x0, x1):
-    global sm64, sm64_mario_id, mario_state, mario_geo, tick_count, origin_offset
+    global sm64, sm64_mario_id, mario_state, mario_geo, tick_count, origin_offset, follow_cam
 
     if not ('LibSM64 Mario' in bpy.data.objects):
         stop_tick_mario()
@@ -175,15 +189,16 @@ def tick_mario(x0, x1):
 
     sm64.sm64_mario_tick(sm64_mario_id, ct.byref(mario_inputs), ct.byref(mario_state), ct.byref(mario_geo))
 
-    bpy.context.scene.cursor.location = (
-         origin_offset[0] + mario_state.posX / SM64_SCALE_FACTOR,
-         origin_offset[1] - mario_state.posZ / SM64_SCALE_FACTOR,
-         origin_offset[2] + mario_state.posY / SM64_SCALE_FACTOR,
-    )
+    if follow_cam:
+        bpy.context.scene.cursor.location = (
+             origin_offset[0] + mario_state.posX / SM64_SCALE_FACTOR,
+             origin_offset[1] - mario_state.posZ / SM64_SCALE_FACTOR,
+             origin_offset[2] + mario_state.posY / SM64_SCALE_FACTOR,
+        )
 
-    for region in (r for r in view3d.regions if r.type == 'WINDOW'):
-        context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
-        bpy.ops.view3d.view_center_cursor(context_override)
+        for region in (r for r in view3d.regions if r.type == 'WINDOW'):
+            context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
+            bpy.ops.view3d.view_center_cursor(context_override)
 
     if tick_count < 15: # This is enough frames to get Mario to open his eyes, then we'll stop updating uv/color
         update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
