@@ -3,48 +3,33 @@ from threading  import Thread
 from subprocess import PIPE, Popen
 from queue import Queue
 
-g_queue = None
-g_running = False
-g_shouldStop = False
-
-def enqueue_output(exe_path):
-    global g_queue, g_running, g_shouldStop
-    proc = Popen([exe_path], shell=True, stdout=PIPE)
-    g_queue = Queue()
-    while not g_shouldStop:
-        if proc.poll() is None:
-            g_queue.put(proc.stdout.readline().decode('utf-8'))
-        else:
-            g_shouldStop = True
-    proc.stdout.close()
-    proc.kill()
-    g_running = False
-
-def start_input_reader():
-    global g_running, g_shouldStop
-    g_shouldStop = False
-    if g_running:
-        return
-    g_running = True
-    this_path = os.path.dirname(os.path.realpath(__file__))
-    exe_path = os.path.join(this_path, 'lib', 'controller.exe')
-    thread = Thread(target=enqueue_output, args=(exe_path,))
-    thread.daemon = True
-    thread.start()
+g_proc = None
 
 def stop_input_reader():
-    global g_shouldStop
-    g_shouldStop = True
+    global g_proc
+    if g_proc != None:
+        g_proc.stdout.close()
+        g_proc.kill()
+        g_proc = None
+
+def start_input_reader():
+    global g_proc
+    stop_input_reader()
+    this_path = os.path.dirname(os.path.realpath(__file__))
+    exe_path = os.path.join(this_path, 'lib', 'controller.exe')
+    g_proc = Popen([exe_path], shell=True, stdin=PIPE, stdout=PIPE)
+    g_proc.stdin.write('\n'.encode())
+    g_proc.stdin.flush()
 
 def sample_input_reader(mario_inputs):
-    global g_queue
-    has_line = False
-    while not g_queue.empty():
-        has_line = True
-        line = g_queue.get()
-    if not has_line:
-        _sample_empty_inputs(mario_inputs)
-        return
+    global g_proc
+
+    line = ""
+    if g_proc.poll() is None:
+        line = g_proc.stdout.readline().decode('utf-8')
+        g_proc.stdin.write('\n'.encode())
+        g_proc.stdin.flush()
+
     vals = [int(x) for x in line.split()]
     if len(vals) < 5:
         _sample_empty_inputs(mario_inputs)

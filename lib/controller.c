@@ -5,6 +5,7 @@
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 int main(int argc, char* args[]) {
     SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_VIDEO);
@@ -24,6 +25,8 @@ int main(int argc, char* args[]) {
     }
 
     while (1) {
+        getchar();
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {}
         printf("%i %i %i %i %i\n", 
@@ -34,6 +37,5 @@ int main(int argc, char* args[]) {
             SDL_GameControllerGetButton(ctrl, 9)
         );
         fflush(stdout);
-        usleep(30000);
     }
 }
