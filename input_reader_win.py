@@ -17,7 +17,7 @@ def start_input_reader():
     stop_input_reader()
     this_path = os.path.dirname(os.path.realpath(__file__))
     exe_path = os.path.join(this_path, 'lib', 'controller.exe')
-    g_proc = Popen([exe_path], shell=True, stdin=PIPE, stdout=PIPE)
+    g_proc = Popen([exe_path], shell=False, stdin=PIPE, stdout=PIPE)
     g_proc.stdin.write('\n'.encode())
     g_proc.stdin.flush()
 
