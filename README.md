@@ -19,6 +19,8 @@ Download the latest release zip [from here](https://github.com/libsm64/libsm64-b
 ### Usage
 With the add-on enabled there should be a LibSM64 tab in the properties sidebar. Browse to an unmodified SM64 US z64 ROM, and then click the "Insert Mario" button to insert a controllable Mario at the 3D cursor location. To stop the simulation just delete the "LibSM64 Mario" object from the scene.
 
+*Note:* The SM64 US ROM must be the one with the SHA1 checksum of `9bef1128717f958171a4afac3ed78ee2bb4e86ce`.
+
 ### Current Features
 - Insert playable Mario into Blender scene
 - Fast64 terrain type and collision surface type support
