@@ -26,30 +26,39 @@ def stop_input_reader():
     thread_running = False
 
 def sample_input_reader(mario_inputs):
-    while len(events) > 0 :
-        for event in events[0]:
-            if event.code == "ABS_X":
-                mario_inputs.stickX = _read_axis(float(event.state))
-            elif event.code == "ABS_Y":
-                mario_inputs.stickY = _read_axis(float(event.state))
-            elif event.code == "BTN_SOUTH":
-                if event.state == 1:
-                    mario_inputs.buttonA = True
-                else:
-                    mario_inputs.buttonA = False
-            elif event.code == "BTN_NORTH":
-                if event.state == 1:
-                    mario_inputs.buttonB = True
-                else:
-                    mario_inputs.buttonB = False
-            elif event.code == "BTN_TL":
-                if event.state == 1:
-                    mario_inputs.buttonZ = True
-                else:
-                    mario_inputs.buttonZ = False
-            #elif event.code != "SYN_REPORT":
-            #    print(event.code + ':' + str(event.state))
-        events.pop(0)
+    from . import config, input_value
+
+    if config['keyboard_control']:
+        mario_inputs.stickX = input_value['RIGHT']*1 - input_value['LEFT']*1
+        mario_inputs.stickY = input_value['DOWN']*1 - input_value['UP']*1
+        mario_inputs.buttonA = input_value['A']
+        mario_inputs.buttonB = input_value['B']
+        mario_inputs.buttonZ = input_value['C']
+    else:
+        while len(events) > 0 :
+            for event in events[0]:
+                if event.code == "ABS_X":
+                    mario_inputs.stickX = _read_axis(float(event.state))
+                elif event.code == "ABS_Y":
+                    mario_inputs.stickY = _read_axis(float(event.state))
+                elif event.code == "BTN_SOUTH":
+                    if event.state == 1:
+                        mario_inputs.buttonA = True
+                    else:
+                        mario_inputs.buttonA = False
+                elif event.code == "BTN_NORTH":
+                    if event.state == 1:
+                        mario_inputs.buttonB = True
+                    else:
+                        mario_inputs.buttonB = False
+                elif event.code == "BTN_TL":
+                    if event.state == 1:
+                        mario_inputs.buttonZ = True
+                    else:
+                        mario_inputs.buttonZ = False
+                #elif event.code != "SYN_REPORT":
+                #    print(event.code + ':' + str(event.state))
+            events.pop(0)
 
 def _read_axis(val):
     val /= 32768.0
