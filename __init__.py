@@ -46,6 +46,10 @@ class Main_PT_Panel(bpy.types.Panel):
         col.prop(scene.libsm64, "rom_path")
         col.prop(scene.libsm64, "camera_follow")
         col.operator(InsertMario_OT_Operator.bl_idname, text='Insert Mario')
+        col.label(text="Control Mario with keyboard")
+        col.label(text="WASD + JKL")
+        col.operator(ControlMario_OT_Operator.bl_idname, text='Start')
+        col.label(text="Press ESC to stop")
 
 class InsertMario_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.libsm64_insert_mario"
@@ -59,10 +63,68 @@ class InsertMario_OT_Operator(bpy.types.Operator):
             self.report({"ERROR"}, err)
         return {'FINISHED'}
 
+
+class ControlMario_OT_Operator(bpy.types.Operator):
+    bl_idname = "view3d.libsm64_control_mario"
+    bl_label = "Control with keyboard"
+    bl_description = "Control Mario with keyboard"
+
+    def invoke(self, context, event):
+        global config
+        config["keyboard_control"] = True
+        if 'LibSM64 Mario' not in bpy.data.objects:
+            return self.report({"ERROR"}, 'Insert Mario first.')
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        if not config["keyboard_control"]:
+            return {'FINISHED'}
+        if event.type == 'ESC':
+            config["keyboard_control"] = False
+            return {'FINISHED'}
+
+        process_input(event)
+
+        return {'RUNNING_MODAL'}
+
+config = {
+    'keyboard_control': False
+}
+
+input_value = {
+    'UP': False,
+    'DOWN': False,
+    'LEFT': False,
+    'RIGHT': False,
+    'A': False,
+    'B': False,
+    'C': False,
+}
+
+input_config = {
+    'UP': 'W',
+    'DOWN': 'S',
+    'LEFT': 'A',
+    'RIGHT': 'D',
+    'A': 'J',
+    'B': 'K',
+    'C': 'L',
+}
+
+def process_input(event):
+    for k, v in input_config.items():
+        if event.type == v:
+            if event.value == 'PRESS':
+                input_value[k] = True
+            else:
+                input_value[k] = False
+
 register_classes, unregister_classes = bpy.utils.register_classes_factory((
     LibSm64Properties,
     Main_PT_Panel,
-    InsertMario_OT_Operator
+    InsertMario_OT_Operator,
+    ControlMario_OT_Operator
 ))
 
 def register():
