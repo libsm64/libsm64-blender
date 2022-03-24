@@ -16,7 +16,7 @@ from . mario import insert_mario
 class LibSm64Properties(bpy.types.PropertyGroup):
     rom_path : bpy.props.StringProperty(
         name="Path",
-        description="Path to an unmodified US SM64 ROM", 
+        description="Path to an unmodified US SM64 ROM",
         subtype='FILE_PATH',
         default=('c:\\sm64.us.z64' if platform.system() == 'Windows' else '~/sm64.us.z64')
     )
@@ -46,10 +46,8 @@ class Main_PT_Panel(bpy.types.Panel):
         col.prop(scene.libsm64, "rom_path")
         col.prop(scene.libsm64, "camera_follow")
         col.operator(InsertMario_OT_Operator.bl_idname, text='Insert Mario')
-        col.label(text="Control Mario with keyboard")
-        col.label(text="WASD + JKL")
-        col.operator(ControlMario_OT_Operator.bl_idname, text='Start')
-        col.label(text="Press ESC to stop")
+        col.operator(ControlMario_OT_Operator.bl_idname, text='Control Mario with keyboard')
+        col.label(text="WASD + JKL to move. ESC to stop.")
 
 class InsertMario_OT_Operator(bpy.types.Operator):
     bl_idname = "view3d.libsm64_insert_mario"
