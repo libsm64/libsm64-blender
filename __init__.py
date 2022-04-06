@@ -24,31 +24,18 @@ class LibSm64Properties(bpy.types.PropertyGroup):
         name="Follow Mario with 3D cursor + camera",
         default=True
     )
-    camera_vert_shift : bpy.props.FloatProperty (
-        name='Camera Vertical Offset',
+    camera_shift : bpy.props.FloatVectorProperty (
+        name='Camera Offset',
         description='Camera Offset from Mario Origin.',
-        default=(1.0),
+        default=(0.0, 0.0, 1.0),
         soft_min =-10.0,
         soft_max=10.0,
         step=10,
         precision=3,
-        subtype='DISTANCE',
+        subtype='XYZ',
         unit='LENGTH',
+        size=3
     )
-    # FIXME: I couldn't figure out how to pass a FloatVectorProperty into the script, so this is disbled for now.
-    # The below lines (40 to 51) would replace the camera_vert_shift above, if properly implemented.
-    # camera_vector_test : bpy.props.FloatVectorProperty (
-    #     name='Mario Cam Offset',
-    #     description='Camera Offset from Mario Origin.',
-    #     default=(0.0, 0.0, 1.0),
-    #     soft_min =-10.0,
-    #     soft_max=10.0,
-    #     step=10,
-    #     precision=3,
-    #     subtype='XYZ',
-    #     unit='LENGTH',
-    #     size=3
-    # )
     mario_scale : bpy.props.FloatProperty(
         name="Blender to SM64 Scale",
         default=100
@@ -69,10 +56,9 @@ class Main_PT_Panel(bpy.types.Panel):
         prop_split(col, scene.libsm64, "mario_scale", "Blender to SM64 Scale")
         col.label(text="SM64 US ROM (Unmodified, 8 MB, z64)")
         col.prop(scene.libsm64, "rom_path")
-        # col.prop(scene.libsm64, "camera_vector_test") #FIXME
         col.prop(scene.libsm64, "camera_follow")
-        col.prop(scene.libsm64, "camera_vert_shift")
         col.operator(InsertMario_OT_Operator.bl_idname, text='Insert Mario')
+        col.prop(scene.libsm64, "camera_shift")
         col.operator(ControlMario_OT_Operator.bl_idname, text='Control Mario with keyboard')
         col.label(text="WASD + JKL to move. ESC to stop.")
 

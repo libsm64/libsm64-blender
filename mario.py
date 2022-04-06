@@ -191,9 +191,9 @@ def tick_mario(x0, x1):
 
     if follow_cam:
         bpy.context.scene.cursor.location = (
-            origin_offset[0] + mario_state.posX / SM64_SCALE_FACTOR,
-            origin_offset[1] - mario_state.posZ / SM64_SCALE_FACTOR,
-            (origin_offset[2] + mario_state.posY / SM64_SCALE_FACTOR) + bpy.context.scene.libsm64.camera_vert_shift
+            origin_offset[0] + mario_state.posX / SM64_SCALE_FACTOR + bpy.context.scene.libsm64.camera_shift.x,
+            origin_offset[1] - mario_state.posZ / SM64_SCALE_FACTOR + bpy.context.scene.libsm64.camera_shift.y,
+            origin_offset[2] + mario_state.posY / SM64_SCALE_FACTOR + bpy.context.scene.libsm64.camera_shift.z
         )
 
         for region in (r for r in view3d.regions if r.type == 'WINDOW'):
