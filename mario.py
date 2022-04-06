@@ -78,8 +78,8 @@ mario_geo = SM64MarioGeometryBuffers()
 follow_cam = False
 tick_count = 0
 
-def insert_mario(rom_path: str, scale: float, camera_follow: bool, camera_vert_shift: float):
-    global sm64, sm64_mario_id, SM64_SCALE_FACTOR, original_fps, tick_count, origin_offset, original_cursor_pos, follow_cam, cam_vert
+def insert_mario(rom_path: str, scale: float, camera_follow: bool):
+    global sm64, sm64_mario_id, SM64_SCALE_FACTOR, original_fps, tick_count, origin_offset, original_cursor_pos, follow_cam
 
     SM64_SCALE_FACTOR = scale
 
@@ -95,9 +95,6 @@ def insert_mario(rom_path: str, scale: float, camera_follow: bool, camera_vert_s
         bpy.context.scene.cursor.location.z
     ]
     follow_cam = camera_follow
-    cam_vert = camera_vert_shift
-    # FIXME: Again, I couldn't figure out how to get the vector into the script, so come back to this later.
-    # cam_vec = camera_vector_test
 
     origin_offset[0] = bpy.context.scene.cursor.location.x
     origin_offset[1] = bpy.context.scene.cursor.location.y
@@ -105,7 +102,7 @@ def insert_mario(rom_path: str, scale: float, camera_follow: bool, camera_vert_s
 
     if 'LibSM64 Mario' in bpy.data.objects:
         bpy.data.objects['LibSM64 Mario'].select_set(True) # Blender 2.8x
-        bpy.ops.object.delete() 
+        bpy.ops.object.delete()
 
     stop_input_reader()
 
@@ -194,9 +191,9 @@ def tick_mario(x0, x1):
 
     if follow_cam:
         bpy.context.scene.cursor.location = (
-            origin_offset[0] + mario_state.posX / SM64_SCALE_FACTOR,
-            origin_offset[1] - mario_state.posZ / SM64_SCALE_FACTOR,
-            (origin_offset[2] + mario_state.posY / SM64_SCALE_FACTOR) + cam_vert, # Add the vertical cam offset here.
+            origin_offset[0] + mario_state.posX / SM64_SCALE_FACTOR + bpy.context.scene.libsm64.camera_shift.x,
+            origin_offset[1] - mario_state.posZ / SM64_SCALE_FACTOR + bpy.context.scene.libsm64.camera_shift.y,
+            origin_offset[2] + mario_state.posY / SM64_SCALE_FACTOR + bpy.context.scene.libsm64.camera_shift.z
         )
 
         for region in (r for r in view3d.regions if r.type == 'WINDOW'):
