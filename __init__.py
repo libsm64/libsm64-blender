@@ -25,28 +25,28 @@ class LibSm64Properties(bpy.types.PropertyGroup):
         default=True
     )
     camera_vert_shift : bpy.props.FloatProperty (
-        name='Camera Vertical Offset', 
-        description='Camera Offset from Mario Origin.', 
-        default=(1.0), 
-        soft_min =-10.0, 
-        soft_max=10.0, 
-        step=10, 
-        precision=3, 
-        subtype='DISTANCE', 
-        unit='LENGTH', 
+        name='Camera Vertical Offset',
+        description='Camera Offset from Mario Origin.',
+        default=(1.0),
+        soft_min =-10.0,
+        soft_max=10.0,
+        step=10,
+        precision=3,
+        subtype='DISTANCE',
+        unit='LENGTH',
     )
-    # FIXME: I couldn't figure out how to pass a FloatVectorProperty into the script, so this is disbled for now. 
+    # FIXME: I couldn't figure out how to pass a FloatVectorProperty into the script, so this is disbled for now.
     # The below lines (40 to 51) would replace the camera_vert_shift above, if properly implemented.
     # camera_vector_test : bpy.props.FloatVectorProperty (
-    #     name='Mario Cam Offset', 
-    #     description='Camera Offset from Mario Origin.', 
-    #     default=(0.0, 0.0, 1.0), 
-    #     soft_min =-10.0, 
-    #     soft_max=10.0, 
-    #     step=10, 
+    #     name='Mario Cam Offset',
+    #     description='Camera Offset from Mario Origin.',
+    #     default=(0.0, 0.0, 1.0),
+    #     soft_min =-10.0,
+    #     soft_max=10.0,
+    #     step=10,
     #     precision=3,
-    #     subtype='XYZ', 
-    #     unit='LENGTH', 
+    #     subtype='XYZ',
+    #     unit='LENGTH',
     #     size=3
     # )
     mario_scale : bpy.props.FloatProperty(
@@ -83,7 +83,7 @@ class InsertMario_OT_Operator(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        err = insert_mario(scene.libsm64.rom_path, scene.libsm64.mario_scale, scene.libsm64.camera_follow, scene.libsm64.camera_vert_shift)
+        err = insert_mario(scene.libsm64.rom_path, scene.libsm64.mario_scale, scene.libsm64.camera_follow)
         if err != None:
             self.report({"ERROR"}, err)
         return {'FINISHED'}
