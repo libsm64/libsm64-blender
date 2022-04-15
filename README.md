@@ -21,6 +21,11 @@ With the add-on enabled there should be a LibSM64 tab in the properties sidebar.
 
 *Note:* The SM64 US ROM must be the one with the SHA1 checksum of `9bef1128717f958171a4afac3ed78ee2bb4e86ce`.
 
+### How to move Mario
+- Plug in a Controller (tested with Xbox controller) into the pc before starting Blender
+- Start Blender and place mario in the Scene
+- Move your left analog stick to move mario, press A to jump and press x to punch
+
 ### Current Features
 - Insert playable Mario into Blender scene
 - Fast64 terrain type and collision surface type support
