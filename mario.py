@@ -329,21 +329,25 @@ def initialize_all_data(texture_buffer):
         mat = bpy.data.materials.new(name="libsm64_mario_material")
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
         nodes.clear()
         tex_node = nodes.new(type='ShaderNodeTexImage')
         tex_node.image = bpy.data.images.get("libsm64_mario_texture")
         color_node = nodes.new(type='ShaderNodeVertexColor')
-        diffuse0_node = nodes.new(type='ShaderNodeBsdfDiffuse')
-        diffuse1_node = nodes.new(type='ShaderNodeBsdfDiffuse')
-        mix_node = nodes.new(type='ShaderNodeMixShader')
+        color_node.layer_name = 'Col'
+        color_node.location = [0, 100]
+        mix_node = nodes.new(type='ShaderNodeMix')
+        mix_node.data_type = 'RGBA'
+        mix_node.location = [250, 0]
+        diffuse_node = nodes.new(type='ShaderNodeBsdfDiffuse')
+        diffuse_node.location = [500, 0]
         out_node = nodes.new(type='ShaderNodeOutputMaterial')
-        links = mat.node_tree.links
-        links.new(tex_node.outputs[0], diffuse0_node.inputs[0])
+        out_node.location = [750, 0]
+        links.new(tex_node.outputs[0], mix_node.inputs[7])
         links.new(tex_node.outputs[1], mix_node.inputs[0])
-        links.new(diffuse0_node.outputs[0], mix_node.inputs[2])
-        links.new(color_node.outputs[0], diffuse1_node.inputs[0])
-        links.new(diffuse1_node.outputs[0], mix_node.inputs[1])
-        links.new(mix_node.outputs[0], out_node.inputs[0])
+        links.new(color_node.outputs[0], mix_node.inputs[6])
+        links.new(mix_node.outputs[2], diffuse_node.inputs[0])
+        links.new(diffuse_node.outputs[0], out_node.inputs[0])
 
     if not ('libsm64_mario_mesh' in bpy.data.meshes):
         mesh = bpy.data.meshes.new('libsm64_mario_mesh')
