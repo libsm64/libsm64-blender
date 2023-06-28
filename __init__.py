@@ -3,7 +3,7 @@ bl_info = {
     "author" : "libsm64",
     "description" : "Add a playble Mario to your Blender Scene",
     "blender" : (2, 80, 0),
-    "version" : (1, 0, 5),
+    "version" : (1, 0, 6),
     "location" : "View3D",
     "warning" : "",
     "category" : "Generic"
