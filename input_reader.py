@@ -25,9 +25,12 @@ def stop_input_reader():
     global thread_running
     thread_running = False
 
+CAM_TURN_EIGTH = 1.0 / 8.0
+
 def sample_input_reader(mario_inputs):
     from . import config, input_value
-
+    mario_inputs.camLookX = 0;
+    mario_inputs.camLookZ = 0;
     if config['keyboard_control']:
         mario_inputs.stickX = input_value['RIGHT']*1 - input_value['LEFT']*1
         mario_inputs.stickY = input_value['DOWN']*1 - input_value['UP']*1
@@ -56,6 +59,24 @@ def sample_input_reader(mario_inputs):
                         mario_inputs.buttonZ = True
                     else:
                         mario_inputs.buttonZ = False
+                if event.code == "ABS_RX": # pan
+                    stick_magnitude = _read_axis(float(event.state))
+                    if stick_magnitude > 0.3:
+                      next = CAM_TURN_EIGTH
+                    elif stick_magnitude < -0.3:
+                      next = -CAM_TURN_EIGTH
+                    else:
+                      next = 0
+                    mario_inputs.camLookX = next
+                elif event.code == "ABS_RY": # zoom
+                    stick_magnitude = _read_axis(float(event.state))
+                    if stick_magnitude > 0.3:
+                      next = 0.5
+                    elif stick_magnitude < -0.3:
+                      next = -0.5
+                    else:
+                      next = 0
+                    mario_inputs.camLookZ = next
                 #elif event.code != "SYN_REPORT":
                 #    print(event.code + ':' + str(event.state))
             events.pop(0)
