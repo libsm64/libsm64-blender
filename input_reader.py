@@ -26,6 +26,8 @@ def stop_input_reader():
     thread_running = False
 
 CAM_TURN_EIGTH = 1.0 / 8.0
+ZOOM_INCR = 0.5
+JOYSTICK_TRESHOLD = 0.3
 
 def sample_input_reader(mario_inputs):
     from . import config, input_value
@@ -61,19 +63,19 @@ def sample_input_reader(mario_inputs):
                         mario_inputs.buttonZ = False
                 if event.code == "ABS_RX": # pan
                     stick_magnitude = _read_axis(float(event.state))
-                    if stick_magnitude > 0.3:
+                    if stick_magnitude > JOYSTICK_TRESHOLD:
                       next = CAM_TURN_EIGTH
-                    elif stick_magnitude < -0.3:
+                    elif stick_magnitude < -JOYSTICK_TRESHOLD:
                       next = -CAM_TURN_EIGTH
                     else:
                       next = 0
                     mario_inputs.camLookX = next
                 elif event.code == "ABS_RY": # zoom
                     stick_magnitude = _read_axis(float(event.state))
-                    if stick_magnitude > 0.3:
-                      next = 0.5
-                    elif stick_magnitude < -0.3:
-                      next = -0.5
+                    if stick_magnitude > JOYSTICK_TRESHOLD:
+                      next = ZOOM_INCR
+                    elif stick_magnitude < -JOYSTICK_TRESHOLD:
+                      next = -ZOOM_INCR
                     else:
                       next = 0
                     mario_inputs.camLookZ = next
