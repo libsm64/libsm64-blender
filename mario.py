@@ -197,9 +197,9 @@ def tick_mario(x0, x1):
         r3d.view_rotation = rotation @ r3d.view_rotation
         last_cam_change_tick = tick_count
     elif is_cam_change_ok and camLookZ != 0:
-      zoom_factor = 1.0 + camLookZ
-      r3d.view_distance *= zoom_factor
-      last_cam_change_tick = tick_count
+        zoom_factor = 1.0 + camLookZ
+        r3d.view_distance *= zoom_factor
+        last_cam_change_tick = tick_count
 
     look_dir = r3d.view_rotation @ mathutils.Vector((0.0, 0.0, -1.0))
     mario_inputs.camLookX = look_dir.x
