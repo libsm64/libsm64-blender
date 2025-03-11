@@ -3,6 +3,7 @@ import bmesh
 import os
 import platform
 import ctypes as ct
+import math
 import mathutils
 from typing import cast, List
 from . collision_types import COLLISION_TYPES
@@ -77,6 +78,7 @@ mario_state = SM64MarioState()
 mario_geo = SM64MarioGeometryBuffers()
 follow_cam = False
 tick_count = 0
+last_cam_change_tick = -30
 
 def insert_mario(rom_path: str, scale: float, camera_follow: bool):
     global sm64, sm64_mario_id, SM64_SCALE_FACTOR, original_fps, tick_count, origin_offset, original_cursor_pos, follow_cam
@@ -168,7 +170,7 @@ def stop_tick_mario():
     stop_input_reader()
 
 def tick_mario(x0, x1):
-    global sm64, sm64_mario_id, mario_state, mario_geo, tick_count, origin_offset, follow_cam
+    global sm64, sm64_mario_id, mario_state, mario_geo, tick_count, last_cam_change_tick, origin_offset, follow_cam
 
     if not ('LibSM64 Mario' in bpy.data.objects):
         stop_tick_mario()
@@ -182,6 +184,22 @@ def tick_mario(x0, x1):
             break
 
     r3d = view3d.spaces[0].region_3d
+
+    # Get rotation inputs (assuming values from 0-1)
+    camLookX = mario_inputs.camLookX  # horizontal rotation (around Z)
+    camLookZ = mario_inputs.camLookZ  # vertical rotation (pitch)
+    ticks_since_cam_change = tick_count - last_cam_change_tick
+    is_cam_change_ok = ticks_since_cam_change > 8
+
+    if is_cam_change_ok and camLookX != 0:  # Dead zone handled in inputs
+        rot_angle = math.radians(360.0 * camLookX)
+        rotation = mathutils.Quaternion((0, 0, 1), rot_angle)
+        r3d.view_rotation = rotation @ r3d.view_rotation
+        last_cam_change_tick = tick_count
+    elif is_cam_change_ok and camLookZ != 0:
+        zoom_factor = 1.0 + camLookZ
+        r3d.view_distance *= zoom_factor
+        last_cam_change_tick = tick_count
 
     look_dir = r3d.view_rotation @ mathutils.Vector((0.0, 0.0, -1.0))
     mario_inputs.camLookX = look_dir.x
@@ -197,8 +215,8 @@ def tick_mario(x0, x1):
         )
 
         for region in (r for r in view3d.regions if r.type == 'WINDOW'):
-            context_override = {'screen': bpy.context.screen, 'area': view3d, 'region': region}
-            bpy.ops.view3d.view_center_cursor(context_override)
+            with bpy.context.temp_override(area=view3d, region=region):
+                bpy.ops.view3d.view_center_cursor()
 
     if tick_count < 15: # This is enough frames to get Mario to open his eyes, then we'll stop updating uv/color
         update_mesh_data(bpy.data.meshes['libsm64_mario_mesh'])
