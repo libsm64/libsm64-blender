@@ -3,13 +3,14 @@ bl_info = {
     "author" : "libsm64",
     "description" : "Add a playble Mario to your Blender Scene",
     "blender" : (2, 80, 0),
-    "version" : (2, 0, 0),
+    "version" : (2, 0, 1),
     "location" : "View3D",
     "warning" : "",
     "category" : "Generic"
 }
 
 import bpy
+import os
 import platform
 from . mario import insert_mario
 
@@ -78,7 +79,11 @@ class InsertMario_OT_Operator(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         preferences = context.preferences.addons[__package__].preferences
-        err = insert_mario(preferences.rom_path, scene.libsm64.mario_scale, scene.libsm64.camera_follow)
+        rom_path = os.path.expanduser(preferences.rom_path)
+        if not os.path.isfile(rom_path):
+            self.report({"ERROR"}, f"ROM file not found at: {rom_path}")
+            return {'CANCELLED'}
+        err = insert_mario(rom_path, scene.libsm64.mario_scale, scene.libsm64.camera_follow)
         if err != None:
             self.report({"ERROR"}, err)
         return {'FINISHED'}
@@ -109,7 +114,7 @@ class ControlMario_OT_Operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 config = {
-    'keyboard_control': False
+    'keyboard_control': True
 }
 
 input_value = {
@@ -161,3 +166,7 @@ def prop_split(layout, data, field, name):
     split = layout.split(factor = 0.5)
     split.label(text = name)
     split.prop(data, field, text = '')
+
+if "bpy" in locals():
+    import importlib
+    importlib.reload(mario)  # Replace with your module names

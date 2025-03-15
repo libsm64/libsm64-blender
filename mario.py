@@ -112,8 +112,15 @@ def insert_mario(rom_path: str, scale: float, camera_follow: bool):
         stop_tick_mario()
 
     this_path = os.path.dirname(os.path.realpath(__file__))
-    dll_name = 'sm64.dll' if platform.system() == 'Windows' else 'libsm64.so'
+    system_name = platform.system()
+    if system_name == 'Windows':
+        dll_name = 'sm64.dll'
+    elif system_name == 'Darwin':  # macOS
+        dll_name = 'libsm64.dylib'
+    else:  # Linux and others
+        dll_name = 'libsm64.so'
     dll_path = os.path.join(this_path, 'lib', dll_name)
+    print(f"Loading libsm64 from {dll_path} ({system_name})")
     sm64 = ct.cdll.LoadLibrary(dll_path)
 
     sm64.sm64_global_init.argtypes = [ ct.c_char_p, ct.POINTER(ct.c_ubyte), ct.c_char_p ]
@@ -143,10 +150,10 @@ def insert_mario(rom_path: str, scale: float, camera_follow: bool):
     mario_obj = bpy.data.objects.new('LibSM64 Mario', bpy.data.meshes['libsm64_mario_mesh'])
     bpy.context.scene.collection.objects.link(mario_obj)
 
-    start_input_reader()
+    # start_input_reader()
 
     original_fps = bpy.context.scene.render.fps
-    bpy.context.scene.render.fps = 30
+    bpy.context.scene.render.fps = 15
     bpy.ops.screen.animation_play()
     bpy.app.handlers.frame_change_pre.append(tick_mario)
 

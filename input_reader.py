@@ -7,8 +7,15 @@ events = []
 def _input_reader_thread():
     global thread_running
     global events
+    notified_of_input_error = False
     while thread_running:
-        events.append(zeth_inputs.get_gamepad())
+        try:
+            events.append(zeth_inputs.get_gamepad())
+        except Exception as e:
+            if not notified_of_input_error:
+                print(f"Error in input reader thread: {e}")
+            notified_of_input_error = True
+            pass
 
 def start_input_reader():
     global thread_running
